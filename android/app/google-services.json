@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "678771931205",
+    "project_id": "sigin-and-sigup-414c8",
+    "storage_bucket": "sigin-and-sigup-414c8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:678771931205:android:64f466d4411eb2280ecb2c",
+        "android_client_info": {
+          "package_name": "com.example.untitled2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjo3dC4DwoO44lqQJ4VLYaSolFWXh7d20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
