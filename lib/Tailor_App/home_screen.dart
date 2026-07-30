@@ -45,6 +45,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _logout(BuildContext ctx) async {
+    final confirm = await showDialog<bool>(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(content: Text("Logout failed: $e")),
+        );
+      }
+    }
+  }
+
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: Container(
@@ -86,10 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryScreen()));
             }),
             const Divider(color: Colors.white24),
-            _drawerItem(Icons.logout, "Logout", Colors.redAccent, () {
-              FirebaseAuth.instance.signOut();
-              Navigator.popUntil(context, (route) => route.isFirst);
-            }),
+            _drawerItem(Icons.logout, "Logout", Colors.redAccent, () => _logout(context)),
           ],
         ),
       ),
