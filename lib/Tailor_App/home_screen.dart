@@ -77,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
     return Drawer(
       child: Container(
         decoration: const BoxDecoration(
@@ -88,17 +89,39 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0056D2), Color(0xFF4A90E2)])),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(padding: const EdgeInsets.all(12), decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle), child: const Icon(Icons.content_cut, color: Colors.white, size: 30)),
-                  const SizedBox(height: 12),
-                  const Text("Tailor Book", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                ],
-              ),
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
+              builder: (context, snapshot) {
+                String name = "Tailor Book";
+                String email = user?.email ?? "";
+                String profilePic = "";
+
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  final data = snapshot.data!.data() as Map<String, dynamic>;
+                  name = data['name'] ?? name;
+                  profilePic = data['profilePic'] ?? "";
+                }
+
+                return UserAccountsDrawerHeader(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0056D2), Color(0xFF4A90E2)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  currentAccountPicture: GestureDetector(
+                    onTap: () => _showProfileDialog(context, name, profilePic),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white24,
+                      backgroundImage: profilePic.isNotEmpty ? NetworkImage(profilePic) : null,
+                      child: profilePic.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 35) : null,
+                    ),
+                  ),
+                  accountName: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                  accountEmail: Text(email, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                );
+              },
             ),
             _drawerItem(Icons.home, "Home", Colors.cyanAccent, () {}),
             _drawerItem(Icons.add_shopping_cart, "Create Order", Colors.orangeAccent, () {
@@ -153,6 +176,12 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("Tailor Book", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () {
+              // Notification action
+            },
+          ),
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search, color: Colors.white),
             onPressed: () => setState(() {
@@ -268,6 +297,54 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+
+
+
+  void _showProfileDialog(BuildContext context, String currentName, String currentPic) {
+    final nameController = TextEditingController(text: currentName);
+    final picController = TextEditingController(text: currentPic);
+    final user = FirebaseAuth.instance.currentUser;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Edit Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Full Name", prefixIcon: Icon(Icons.person)),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: picController,
+                decoration: const InputDecoration(labelText: "Profile Image URL", prefixIcon: Icon(Icons.image), hintText: "https://..."),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              if (user != null) {
+                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                  'name': nameController.text.trim(),
+                  'profilePic': picController.text.trim(),
+                });
+                if (context.mounted) Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), foregroundColor: Colors.white),
+            child: const Text("Save"),
+          ),
+        ],
+      ),
     );
   }
 

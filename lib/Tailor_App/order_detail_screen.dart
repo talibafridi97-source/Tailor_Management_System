@@ -86,7 +86,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               _buildSection("Material Details", Icons.inventory_2_outlined, const Color(0xFF0056D2), materials, "details"),
             const SizedBox(height: 16),
 
-            // 4. Measurements Section
+            // 4. Due Payment Section (New)
+            _buildDuePaymentSection(due),
+            const SizedBox(height: 16),
+
+            // 5. Measurements Section
             if (measurements.isNotEmpty)
               _buildSection("Measurements", Icons.straighten, const Color(0xFF6C63FF), measurements, "inch"),
             const SizedBox(height: 24),
@@ -302,6 +306,90 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: _statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: _statusColor.withOpacity(0.3))),
       child: Text(status.toUpperCase(), style: TextStyle(color: _statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildDuePaymentSection(double due) {
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text("Payment Details", style: TextStyle(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _payRow("Total Bill", "Rs. ${widget.order['totalBill']}", Colors.black87),
+                _payRow("Advance Paid", "Rs. ${widget.order['advancePayment']}", Colors.blue),
+                const Divider(),
+                _payRow("Remaining Balance", "Rs. $due", due > 0 ? Colors.red : Colors.green, isBold: true),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
+              if (due > 0)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _collectDuePayment();
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  child: const Text("Collect Payment", style: TextStyle(color: Colors.white)),
+                ),
+            ],
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 6))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _iconBox(Icons.account_balance_wallet, Colors.redAccent),
+                const SizedBox(width: 12),
+                const Text("Due Payment", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                const Icon(Icons.info_outline, size: 20, color: Colors.grey),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  due > 0 ? "Baqaya (Remaining)" : "Payment Clear",
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                ),
+                Text(
+                  "Rs. $due",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: due > 0 ? Colors.red : Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            if (due > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  "Customer: ${widget.order['clientName']}",
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
