@@ -7,6 +7,10 @@ import 'dashboard_screen.dart';
 import 'customer_screen.dart';
 import 'inventory_screen.dart';
 import 'due_payment_screen.dart';
+import 'settings_screen.dart';
+import 'app_translations.dart';
+import 'settings_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -78,6 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDrawer(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final settings = Provider.of<SettingsProvider>(context);
+    final locale = settings.locale.languageCode;
+    String t(String key) => AppTranslations.getText(key, locale);
+
     return Drawer(
       child: Container(
         decoration: const BoxDecoration(
@@ -92,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
             StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
               builder: (context, snapshot) {
-                String name = "Tailor Book";
+                String name = t('app_title');
                 String email = user?.email ?? "";
                 String profilePic = "";
 
@@ -123,29 +131,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            _drawerItem(Icons.home, "Home", Colors.cyanAccent, () {}),
-            _drawerItem(Icons.add_shopping_cart, "Create Order", Colors.orangeAccent, () {
+            _drawerItem(Icons.home, t('home'), Colors.cyanAccent, () {}),
+            _drawerItem(Icons.add_shopping_cart, t('create_order'), Colors.orangeAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateOrderScreen()));
             }),
-            _drawerItem(Icons.dashboard, "Dashboard", Colors.yellowAccent, () {
+            _drawerItem(Icons.dashboard, t('dashboard'), Colors.yellowAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
             }),
-            _drawerItem(Icons.payment, "Due Payment", Colors.redAccent, () {
+            _drawerItem(Icons.payment, t('due_payment'), Colors.redAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DuePaymentScreen()));
             }),
-            _drawerItem(Icons.people, "Customers", Colors.greenAccent, () {
+            _drawerItem(Icons.people, t('customers'), Colors.greenAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerScreen()));
             }),
-            _drawerItem(Icons.inventory, "Inventory", Colors.purpleAccent, () {
+            _drawerItem(Icons.inventory, t('inventory'), Colors.purpleAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryScreen()));
             }),
+            _drawerItem(Icons.settings, t('settings'), Colors.blueGrey, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            }),
             const Divider(color: Colors.white24),
-            _drawerItem(Icons.logout, "Logout", Colors.redAccent, () => _logout(context)),
+            _drawerItem(Icons.logout, t('logout'), Colors.redAccent, () => _logout(context)),
           ],
         ),
       ),
     );
   }
+
 
   Widget _drawerItem(IconData icon, String title, Color iconColor, VoidCallback onTap) {
     return ListTile(
@@ -160,8 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
+    final settings = Provider.of<SettingsProvider>(context);
+    final locale = settings.locale.languageCode;
+    String t(String key) => AppTranslations.getText(key, locale);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: _buildDrawer(context),
       appBar: AppBar(
         elevation: 0,
@@ -173,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: const Text("Tailor Book", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(t('app_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -223,16 +239,20 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
         selectedItemColor: const Color(0xFF0056D2),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.pending_actions), label: 'Pending'),
-          BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Complete'),
-          BottomNavigationBarItem(icon: Icon(Icons.local_shipping), label: 'Delivered'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.pending_actions), label: t('pending')),
+          BottomNavigationBarItem(icon: const Icon(Icons.check_circle), label: t('complete')),
+          BottomNavigationBarItem(icon: const Icon(Icons.local_shipping), label: t('delivered')),
         ],
       ),
     );
   }
 
   Widget _buildOrderList(String uid) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final locale = settings.locale.languageCode;
+    String t(String key) => AppTranslations.getText(key, locale);
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('orders').where('userId', isEqualTo: uid).where('status', isEqualTo: _statusFilter).snapshots(),
       builder: (context, snapshot) {
@@ -248,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (orders.isEmpty) {
-          return Center(child: Text("No $_statusFilter orders found", style: const TextStyle(color: Colors.grey)));
+          return Center(child: Text("${t('pending')} orders found", style: const TextStyle(color: Colors.grey)));
         }
 
         return ListView.builder(
