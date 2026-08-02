@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'settings_provider.dart';
 import 'app_translations.dart';
 
@@ -44,9 +46,9 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.storefront,
             title: t('business_profile'),
-            subtitle: "Manage shop name, address, and logo",
+            subtitle: t('business_details'),
             color: Colors.blueAccent,
-            onTap: () {},
+            onTap: () => _showBusinessProfileDialog(context, t),
           ),
           _settingsItem(
             context: context,
@@ -76,9 +78,9 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.security,
             title: t('account'),
-            subtitle: "Change password and account security",
+            subtitle: "Change password, update email, and logout",
             color: Colors.redAccent,
-            onTap: () {},
+            onTap: () => _showAccountSecurityDialog(context, t),
           ),
           const SizedBox(height: 20),
           const Center(
@@ -86,6 +88,206 @@ class SettingsScreen extends StatelessWidget {
               "Tailor Book v1.0.0",
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBusinessProfileDialog(BuildContext context, String Function(String) t) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final data = doc.data() ?? {};
+
+    final shopNameController = TextEditingController(text: data['shopName'] ?? '');
+    final contactController = TextEditingController(text: data['shopContact'] ?? '');
+    final addressController = TextEditingController(text: data['shopAddress'] ?? '');
+    final logoController = TextEditingController(text: data['shopLogo'] ?? '');
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t('business_profile'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: shopNameController,
+                decoration: InputDecoration(labelText: t('shop_name'), prefixIcon: const Icon(Icons.store)),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: contactController,
+                decoration: InputDecoration(labelText: t('shop_contact'), prefixIcon: const Icon(Icons.phone)),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(labelText: t('shop_address'), prefixIcon: const Icon(Icons.location_on)),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: logoController,
+                decoration: InputDecoration(labelText: t('shop_logo'), prefixIcon: const Icon(Icons.link), hintText: "https://..."),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                'shopName': shopNameController.text.trim(),
+                'shopContact': contactController.text.trim(),
+                'shopAddress': addressController.text.trim(),
+                'shopLogo': logoController.text.trim(),
+              });
+              if (context.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('success')), backgroundColor: Colors.green));
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), foregroundColor: Colors.white),
+            child: Text(t('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAccountSecurityDialog(BuildContext context, String Function(String) t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t('account'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.lock_outline, color: Colors.redAccent),
+              title: Text(t('change_password')),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showChangePasswordDialog(context, t);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: Colors.blueAccent),
+              title: Text(t('update_email')),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showUpdateEmailDialog(context, t);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.grey),
+              title: Text(t('logout_title')),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showLogoutConfirm(context, t);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, String Function(String) t) {
+    final passController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('change_password')),
+        content: TextField(
+          controller: passController,
+          obscureText: true,
+          decoration: InputDecoration(hintText: t('new_password')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.currentUser?.updatePassword(passController.text);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('password_updated')), backgroundColor: Colors.green));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('reauth_needed')), backgroundColor: Colors.red));
+                }
+              }
+            },
+            child: Text(t('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateEmailDialog(BuildContext context, String Function(String) t) {
+    final emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('update_email')),
+        content: TextField(
+          controller: emailController,
+          decoration: InputDecoration(hintText: t('new_email')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.currentUser?.updateEmail(emailController.text);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('email_updated')), backgroundColor: Colors.green));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('reauth_needed')), backgroundColor: Colors.red));
+                }
+              }
+            },
+            child: Text(t('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutConfirm(BuildContext context, String Function(String) t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('logout_title')),
+        content: Text(t('logout_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pop(ctx);
+                Navigator.pop(context); // Go back from settings to trigger main.dart listener
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: Text(t('logout_title')),
           ),
         ],
       ),
