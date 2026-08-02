@@ -44,6 +44,10 @@ class AppTranslations {
       'delivery_reminder': 'Delivery Reminder',
       'payment_reminder': 'Payment Reminder',
       'notif_desc': 'Manage your alerts and reminders',
+      'inches': 'Inches',
+      'cm': 'Centimeters',
+      'select_unit': 'Select Measurement Unit',
+      'unit_desc': 'Set default unit (Inches or CM)',
     },
     'ur': {
       'app_title': 'ٹیلر بک',
@@ -81,7 +85,7 @@ class AppTranslations {
       'password_updated': 'پاس ورڈ کامیابی سے تبدیل ہو گیا!',
       'email_updated': 'ای میل کامیابی سے اپ ڈیٹ ہو گیا!',
       'reauth_needed': 'حساس ڈیٹا تبدیل کرنے کے لیے براہ کرم دوبارہ لاگ ان کریں۔',
-      'shop_name': 'دکان کا نام',
+      'shop_name': 'دکان ka نام',
       'shop_contact': 'رابطہ نمبر',
       'shop_address': 'پتہ',
       'shop_logo': 'لوگو کا لنک',
@@ -89,6 +93,10 @@ class AppTranslations {
       'delivery_reminder': 'ڈیلیوری کی یاد دہانی',
       'payment_reminder': 'ادائیگی کی یاد دہانی',
       'notif_desc': 'اپنے الرٹس اور ریمائنڈرز کا نظم کریں',
+      'inches': 'انچ',
+      'cm': 'سینٹی میٹر',
+      'select_unit': 'پیمائش کی اکائی منتخب کریں',
+      'unit_desc': 'ڈیفالٹ اکائی (انچ یا سینٹی میٹر) سیٹ کریں',
     },
     'hi': {
       'app_title': 'दर्जी बुक',
@@ -134,6 +142,10 @@ class AppTranslations {
       'delivery_reminder': 'डिलिवरी अनुस्मारक',
       'payment_reminder': 'भुगतान अनुस्मारक',
       'notif_desc': 'अपने अलर्ट और अनुस्मारक प्रबंधित करें',
+      'inches': 'इंच',
+      'cm': 'सेंटीमीटर',
+      'select_unit': 'माप इकाई चुनें',
+      'unit_desc': 'डिफ़ॉल्ट इकाई (इंच या सेमी) सेट करें',
     },
     'ps': {
       'app_title': 'د خیاط کتاب',
@@ -179,6 +191,10 @@ class AppTranslations {
       'delivery_reminder': 'د سپارلو یادونه',
       'payment_reminder': 'د تادیې یادونه',
       'notif_desc': 'خپل الرټونه او یادونه تنظیم کړئ',
+      'inches': 'انچ',
+      'cm': 'سانتي متره',
+      'select_unit': 'د اندازه کولو واحد غوره کړئ',
+      'unit_desc': 'ډیفالټ واحد (انچ یا سانتي متره) تنظیم کړئ',
     },
   };
 

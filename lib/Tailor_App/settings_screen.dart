@@ -54,9 +54,9 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.straighten,
             title: t('measurements'),
-            subtitle: "Set units to Inches or Centimeters",
+            subtitle: t('unit_desc'),
             color: Colors.greenAccent,
-            onTap: () {},
+            onTap: () => _showMeasurementUnitDialog(context, settings, t),
           ),
           _settingsItem(
             context: context,
@@ -193,6 +193,39 @@ class SettingsScreen extends StatelessWidget {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMeasurementUnitDialog(BuildContext context, SettingsProvider settings, String Function(String) t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t('select_unit'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: Text(t('inches')),
+              value: 'inches',
+              groupValue: settings.measurementUnit,
+              onChanged: (val) {
+                if (val != null) settings.setMeasurementUnit(val);
+                Navigator.pop(ctx);
+              },
+            ),
+            RadioListTile<String>(
+              title: Text(t('cm')),
+              value: 'cm',
+              groupValue: settings.measurementUnit,
+              onChanged: (val) {
+                if (val != null) settings.setMeasurementUnit(val);
+                Navigator.pop(ctx);
+              },
+            ),
           ],
         ),
       ),

@@ -6,11 +6,13 @@ class SettingsProvider extends ChangeNotifier {
   Locale _locale = const Locale('en');
   bool _deliveryReminder = true;
   bool _paymentReminder = true;
+  String _measurementUnit = 'inches'; // 'inches' or 'cm'
 
   ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;
   bool get deliveryReminder => _deliveryReminder;
   bool get paymentReminder => _paymentReminder;
+  String get measurementUnit => _measurementUnit;
 
   SettingsProvider() {
     _loadSettings();
@@ -30,6 +32,9 @@ class SettingsProvider extends ChangeNotifier {
     // Load Notifications
     _deliveryReminder = prefs.getBool('deliveryReminder') ?? true;
     _paymentReminder = prefs.getBool('paymentReminder') ?? true;
+
+    // Load Measurement Unit
+    _measurementUnit = prefs.getString('measurementUnit') ?? 'inches';
 
     notifyListeners();
   }
@@ -60,5 +65,12 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('paymentReminder', val);
+  }
+
+  Future<void> setMeasurementUnit(String unit) async {
+    _measurementUnit = unit;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('measurementUnit', unit);
   }
 }
