@@ -62,9 +62,9 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.notifications_active_outlined,
             title: t('notifications'),
-            subtitle: "Manage delivery and payment alerts",
+            subtitle: t('notif_desc'),
             color: Colors.orangeAccent,
-            onTap: () {},
+            onTap: () => _showNotificationSettingsDialog(context, settings, t),
           ),
           _settingsItem(
             context: context,
@@ -159,6 +159,42 @@ class SettingsScreen extends StatelessWidget {
             child: Text(t('save')),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showNotificationSettingsDialog(BuildContext context, SettingsProvider settings, String Function(String) t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(t('notifications'), style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: Text(t('delivery_reminder')),
+                secondary: const Icon(Icons.alarm, color: Colors.orangeAccent),
+                value: settings.deliveryReminder,
+                onChanged: (val) {
+                  settings.toggleDeliveryReminder(val);
+                },
+              ),
+              SwitchListTile(
+                title: Text(t('payment_reminder')),
+                secondary: const Icon(Icons.payment, color: Colors.greenAccent),
+                value: settings.paymentReminder,
+                onChanged: (val) {
+                  settings.togglePaymentReminder(val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ],
+        ),
       ),
     );
   }

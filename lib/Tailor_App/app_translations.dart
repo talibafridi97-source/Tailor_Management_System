@@ -41,6 +41,9 @@ class AppTranslations {
       'shop_address': 'Address',
       'shop_logo': 'Logo URL',
       'business_details': 'Manage your shop details',
+      'delivery_reminder': 'Delivery Reminder',
+      'payment_reminder': 'Payment Reminder',
+      'notif_desc': 'Manage your alerts and reminders',
     },
     'ur': {
       'app_title': 'ٹیلر بک',
@@ -83,6 +86,9 @@ class AppTranslations {
       'shop_address': 'پتہ',
       'shop_logo': 'لوگو کا لنک',
       'business_details': 'اپنی دکان کی تفصیلات سنبھالیں',
+      'delivery_reminder': 'ڈیلیوری کی یاد دہانی',
+      'payment_reminder': 'ادائیگی کی یاد دہانی',
+      'notif_desc': 'اپنے الرٹس اور ریمائنڈرز کا نظم کریں',
     },
     'hi': {
       'app_title': 'दर्जी बुक',
@@ -125,6 +131,9 @@ class AppTranslations {
       'shop_address': 'पता',
       'shop_logo': 'लोगो लिंक',
       'business_details': 'अपनी दुकान का विवरण प्रबंधित करें',
+      'delivery_reminder': 'डिलिवरी अनुस्मारक',
+      'payment_reminder': 'भुगतान अनुस्मारक',
+      'notif_desc': 'अपने अलर्ट और अनुस्मारक प्रबंधित करें',
     },
     'ps': {
       'app_title': 'د خیاط کتاب',
@@ -148,7 +157,7 @@ class AppTranslations {
       'inventory': 'انوینٹری',
       'logout': 'وتل',
       'pending': 'پاتې',
-      'complete': 'بشپړ شوی',
+      'complete': 'بشړ شوی',
       'delivered': 'سپارل شوی',
       'welcome': 'ښه راغلاست،',
       'change_password': 'پاسورډ بدل کړئ',
@@ -167,6 +176,9 @@ class AppTranslations {
       'shop_address': 'پته',
       'shop_logo': 'د لوګو لینک',
       'business_details': 'د خپلې هټۍ توضیحات تنظیم کړئ',
+      'delivery_reminder': 'د سپارلو یادونه',
+      'payment_reminder': 'د تادیې یادونه',
+      'notif_desc': 'خپل الرټونه او یادونه تنظیم کړئ',
     },
   };
 
