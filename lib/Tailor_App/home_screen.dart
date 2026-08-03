@@ -258,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         
-        var orders = snapshot.data?.docs ?? [];
+        var orders = List<QueryDocumentSnapshot>.from(snapshot.data?.docs ?? []);
 
         // Manual Sorting: Pinned orders first, then by timestamp
         orders.sort((a, b) {
@@ -285,7 +285,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (orders.isEmpty) {
-          return Center(child: Text("${t('pending')} orders found", style: const TextStyle(color: Colors.grey)));
+          String statusText = t(_statusFilter);
+          return Center(child: Text("No $statusText orders found", style: const TextStyle(color: Colors.grey)));
         }
 
         return ListView.builder(
