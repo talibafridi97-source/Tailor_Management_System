@@ -48,6 +48,9 @@ class AppTranslations {
       'cm': 'Centimeters',
       'select_unit': 'Select Measurement Unit',
       'unit_desc': 'Set default unit (Inches or CM)',
+      'urgent': 'Urgent',
+      'mark_urgent': 'Mark as Urgent',
+      'pinned_orders': 'Pinned Orders',
     },
     'ur': {
       'app_title': 'ٹیلر بک',
@@ -97,6 +100,9 @@ class AppTranslations {
       'cm': 'سینٹی میٹر',
       'select_unit': 'پیمائش کی اکائی منتخب کریں',
       'unit_desc': 'ڈیفالٹ اکائی (انچ یا سینٹی میٹر) سیٹ کریں',
+      'urgent': 'فوری (Urgent)',
+      'mark_urgent': 'فوری آرڈر کے طور پر نشان زد کریں',
+      'pinned_orders': 'پن کیے ہوئے آرڈرز',
     },
     'hi': {
       'app_title': 'दर्जी बुक',
@@ -146,6 +152,9 @@ class AppTranslations {
       'cm': 'सेंटीमीटर',
       'select_unit': 'माप इकाई चुनें',
       'unit_desc': 'डिफ़ॉल्ट इकाई (इंच या सेमी) सेट करें',
+      'urgent': 'तत्काल (Urgent)',
+      'mark_urgent': 'तत्काल के रूप में चिह्नित करें',
+      'pinned_orders': 'पिन किए गए ऑर्डर',
     },
     'ps': {
       'app_title': 'د خیاط کتاب',
@@ -195,6 +204,9 @@ class AppTranslations {
       'cm': 'سانتي متره',
       'select_unit': 'د اندازه کولو واحد غوره کړئ',
       'unit_desc': 'ډیفالټ واحد (انچ یا سانتي متره) تنظیم کړئ',
+      'urgent': 'فوري (Urgent)',
+      'mark_urgent': 'د فوري په توګه په نښه کړئ',
+      'pinned_orders': 'پن شوي امرونه',
     },
   };
 

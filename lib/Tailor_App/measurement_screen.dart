@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'settings_provider.dart';
+import 'app_translations.dart';
 
 class MeasurementScreen extends StatefulWidget {
   final String clientName;
@@ -37,6 +39,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   // Payment Controllers
   final TextEditingController _totalPriceController = TextEditingController();
   final TextEditingController _advanceController = TextEditingController();
+  bool _isUrgent = false;
   
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isLoading = false;
@@ -112,6 +115,10 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   @override
   Widget build(BuildContext context) {
     final measurements = _getMeasurements();
+    final settings = Provider.of<SettingsProvider>(context);
+    final locale = settings.locale.languageCode;
+    String t(String key) => AppTranslations.getText(key, locale);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -131,6 +138,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                 children: [
                   _clientCard(),
                   _datesCard(),
+                  _urgentToggle(t),
                   _paymentCard(), // Added Payment Card
                   const SizedBox(height: 10),
                   const Padding(
@@ -167,6 +175,25 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           ),
           _saveAction(),
         ],
+      ),
+    );
+  }
+
+  Widget _urgentToggle(String Function(String) t) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: _isUrgent ? Border.all(color: Colors.redAccent, width: 2) : null,
+      ),
+      child: SwitchListTile(
+        title: Text(t('mark_urgent'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+        secondary: const Icon(Icons.push_pin, color: Colors.redAccent),
+        value: _isUrgent,
+        activeColor: Colors.redAccent,
+        onChanged: (val) => setState(() => _isUrgent = val),
       ),
     );
   }
@@ -363,6 +390,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         'totalBill': total,
         'advancePayment': adv,
         'dueAmount': due,
+        'isPinned': _isUrgent,
         'orderDate': Timestamp.fromDate(_orderDate),
         'deliveryDate': Timestamp.fromDate(_deliveryDate),
         'status': 'pending', 

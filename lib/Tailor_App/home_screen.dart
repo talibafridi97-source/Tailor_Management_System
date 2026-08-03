@@ -259,6 +259,23 @@ class _HomeScreenState extends State<HomeScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         
         var orders = snapshot.data?.docs ?? [];
+
+        // Manual Sorting: Pinned orders first, then by timestamp
+        orders.sort((a, b) {
+          final da = a.data() as Map<String, dynamic>;
+          final db = b.data() as Map<String, dynamic>;
+          bool pinA = da['isPinned'] ?? false;
+          bool pinB = db['isPinned'] ?? false;
+          
+          if (pinA != pinB) return pinB ? 1 : -1;
+          
+          final ta = da['timestamp'] as Timestamp?;
+          final tb = db['timestamp'] as Timestamp?;
+          if (ta == null) return 1;
+          if (tb == null) return -1;
+          return tb.compareTo(ta);
+        });
+
         if (_searchQuery.isNotEmpty) {
           orders = orders.where((doc) {
             final d = doc.data() as Map<String, dynamic>;
@@ -283,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             bool isDark = Theme.of(context).brightness == Brightness.dark;
+            bool isPinned = data['isPinned'] ?? false;
 
             return GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: data, orderId: id))),
@@ -291,10 +309,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
+                  border: isPinned ? Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1.5) : null,
                   boxShadow: [
                     if (!isDark)
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: isPinned ? Colors.redAccent.withOpacity(0.05) : Colors.black.withOpacity(0.04),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -309,8 +328,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         top: 0,
                         bottom: 0,
                         width: 6,
-                        child: Container(color: _statusColor),
+                        child: Container(color: isPinned ? Colors.redAccent : _statusColor),
                       ),
+                      if (isPinned)
+                        Positioned(
+                          right: 12,
+                          top: 12,
+                          child: Icon(Icons.push_pin, color: Colors.redAccent.withOpacity(0.8), size: 18),
+                        ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
                         child: Row(
@@ -318,14 +343,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: _statusColor.withOpacity(0.1),
+                                color: (isPinned ? Colors.redAccent : _statusColor).withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 data['garment']?.toString().toLowerCase().contains('suit') ?? false
                                     ? Icons.checkroom
                                     : Icons.person,
-                                color: _statusColor,
+                                color: isPinned ? Colors.redAccent : _statusColor,
                                 size: 28,
                               ),
                             ),
@@ -334,13 +359,24 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    data['clientName'] ?? '',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 17,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        data['clientName'] ?? '',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 17,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                      if (isPinned)
+                                        Container(
+                                          margin: const EdgeInsets.only(left: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(6)),
+                                          child: Text(t('urgent').toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
@@ -415,9 +451,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: const Icon(Icons.check, color: Colors.green, size: 20),
                                   ),
                                 const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () => _deleteOrderDialog(id),
-                                  child: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.5), size: 20),
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () {
+                                        FirebaseFirestore.instance.collection('orders').doc(id).update({
+                                          'isPinned': !isPinned
+                                        });
+                                      },
+                                      child: Icon(
+                                        isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                        color: isPinned ? Colors.redAccent : Colors.grey.withOpacity(0.5),
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    InkWell(
+                                      onTap: () => _deleteOrderDialog(id),
+                                      child: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.5), size: 20),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
