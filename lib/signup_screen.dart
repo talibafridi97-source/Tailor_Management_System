@@ -1,7 +1,9 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'views/home_screen.dart';
+import 'services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -14,49 +16,87 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // Base URL: Chrome Web vs Android Emulator
+  String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api/auth/signup';
+    } else {
+      return 'http://10.0.2.2:5000/api/auth/signup'; // Android Emulator
+    }
+  }
+
   Future<void> _signUp() async {
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _nameController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty || name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields")),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'fullName': name,
+          'email': email,
+          'password': password,
+        }),
+      );
 
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'createdAt': DateTime.now(),
-      });
+      final data = jsonDecode(response.body);
 
-      if (mounted) {
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
+        // 1. Token ko local storage me save karein
+        if (data['token'] != null) {
+          await AuthService.saveToken(data['token']);
+        }
+
+        if (!mounted) return;
+
+        // 2. Success Message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? "Registration Successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 3. Home Screen Par Navigation
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
+              (route) => false,
+        );
+      } else {
+        // Backend Error Response
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? "Signup failed"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message ?? "Signup failed")));
-      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Network Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -202,25 +242,25 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator(color: Colors.white))
                       : ElevatedButton(
-                          onPressed: _signUp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF1A1A2E),
-                            elevation: 8,
-                            shadowColor: Colors.white.withValues(alpha: 0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            "Sign Up",
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
+                    onPressed: _signUp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF1A1A2E),
+                      elevation: 8,
+                      shadowColor: Colors.white.withValues(alpha: 0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      "Sign Up",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(

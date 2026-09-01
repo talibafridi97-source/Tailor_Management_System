@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 
 class EditCustomerScreen extends StatefulWidget {
   final String docId;
@@ -43,36 +43,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final oldPhone = widget.customerData['phone'];
-      final newName = _nameController.text.trim();
-      final newPhone = _phoneController.text.trim();
-      final newAddress = _addressController.text.trim();
-
-      await FirebaseFirestore.instance.collection('customers').doc(widget.docId).update({
-        'name': newName,
-        'phone': newPhone,
-        'address': newAddress,
-        'gender': _selectedGender,
-        'measurements': _measurements,
-      });
-
-      // Sync with orders
-      final ordersQuery = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('phone', isEqualTo: oldPhone)
-          .get();
-
-      WriteBatch batch = FirebaseFirestore.instance.batch();
-      for (var doc in ordersQuery.docs) {
-        batch.update(doc.reference, {
-          'clientName': newName,
-          'phone': newPhone,
-          'address': newAddress,
-          'gender': _selectedGender,
-        });
-      }
-      await batch.commit();
-
+      // TODO: Implement MongoDB Customer Update
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Updated successfully!"), backgroundColor: Colors.green));
         Navigator.pop(context);
@@ -115,7 +86,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
                     const SizedBox(height: 16),
                     _buildField(_phoneController, "Phone Number", Icons.phone, Colors.red, keyboardType: TextInputType.phone),
                     const SizedBox(height: 16),
-                    _buildField(_addressController, "Address", Icons.location_on, Colors.green, maxLines: 2),
+                    _infoField(_addressController, "Address", Icons.location_on, Colors.green),
                   ],
                 ),
               ),
@@ -163,11 +134,25 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label, IconData icon, Color color, {TextInputType? keyboardType, int maxLines = 1}) {
+  Widget _buildField(TextEditingController controller, String label, IconData icon, Color color, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: color),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      validator: (v) => v!.isEmpty ? "Required" : null,
+    );
+  }
+
+  Widget _infoField(TextEditingController controller, String label, IconData icon, Color color) {
+    return TextFormField(
+      controller: controller,
+      maxLines: 2,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: color),

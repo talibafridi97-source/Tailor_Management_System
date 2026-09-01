@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 
 class CustomerModel {
   final String? id;
@@ -30,7 +30,8 @@ class CustomerModel {
       address: data['address'] ?? '',
       gender: data['gender'],
       measurements: data['measurements'],
-      timestamp: (data['timestamp'] as Timestamp?)?.toDate(),
+      // TODO: Replace with MongoDB logic
+      timestamp: data['timestamp'] != null ? DateTime.tryParse(data['timestamp'].toString()) : null,
     );
   }
 
@@ -42,7 +43,8 @@ class CustomerModel {
       'address': address,
       'gender': gender,
       'measurements': measurements,
-      'timestamp': timestamp != null ? Timestamp.fromDate(timestamp!) : FieldValue.serverTimestamp(),
+      // TODO: Replace with MongoDB server timestamp
+      'timestamp': timestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
     };
   }
 }

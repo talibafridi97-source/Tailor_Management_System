@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:provider/provider.dart';
+
+import 'controllers/settings_controller.dart';
+import 'services/auth_service.dart';
 import 'views/home_screen.dart';
 import 'views/tailor_book.dart';
-import 'controllers/settings_controller.dart';
-import 'package:provider/provider.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
   runApp(
     ChangeNotifierProvider(
@@ -22,15 +18,6 @@ void main() async {
       child: const MyApp(),
     ),
   );
-
-  FirebaseAuth.instance.authStateChanges().listen((User? user) {
-    if (user == null) {
-      _navigatorKey.currentState?.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TailorBookScreen()),
-        (route) => false,
-      );
-    }
-  });
 }
 
 class MyApp extends StatelessWidget {
@@ -62,17 +49,25 @@ class MyApp extends StatelessWidget {
         Locale('hi'),
         Locale('ps'),
       ],
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+      // FutureBuilder async token fetch hone ka wait karega
+      home: FutureBuilder<String?>(
+        future: AuthService.getToken(),
         builder: (context, snapshot) {
+          // Jab tak storage se token read ho raha hai:
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
             );
           }
-          if (snapshot.hasData) {
+
+          // Read hone ke baad token verify karein:
+          if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
             return const HomeScreen();
           }
+
+          // Token na hone par TailorBookScreen dikhain:
           return const TailorBookScreen();
         },
       ),

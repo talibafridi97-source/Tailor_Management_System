@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 import 'package:provider/provider.dart';
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
@@ -42,10 +42,10 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   final TextEditingController _advanceController = TextEditingController();
   bool _isUrgent = false;
   
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // final FirebaseFirestore _firestore = FirebaseFirestore.instance; // TODO: Replace with MongoDB
   bool _isLoading = false;
 
-  User? get _user => FirebaseAuth.instance.currentUser;
+  // User? get _user => FirebaseAuth.instance.currentUser; // TODO: Replace with MongoDB User
   DateTime _orderDate = DateTime.now();
   DateTime _deliveryDate = DateTime.now().add(const Duration(days: 7));
 
@@ -353,6 +353,8 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   }
 
   Future<void> _onSave() async {
+    // TODO: Implement MongoDB Save/Update logic
+    /*
     final currentUser = _user;
     if (currentUser == null) return;
     setState(() => _isLoading = true);
@@ -368,46 +370,15 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       Map<String, String> materials = {};
       _materialControllers.forEach((k, v) => materials[k] = v.text);
 
-      final batch = _firestore.batch();
+      // Save to MongoDB
       
-      final custQ = await _firestore.collection('customers').where('userId', isEqualTo: currentUser.uid).where('phone', isEqualTo: widget.phone).get();
-      if (custQ.docs.isEmpty) {
-        batch.set(_firestore.collection('customers').doc(), {
-          'userId': currentUser.uid, 'name': widget.clientName, 'phone': widget.phone, 'address': widget.address, 'gender': widget.gender, 'measurements': mData, 'createdAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        batch.update(custQ.docs.first.reference, {'name': widget.clientName, 'address': widget.address, 'measurements': mData});
-      }
-
-      batch.set(_firestore.collection('orders').doc(), {
-        'userId': currentUser.uid, 
-        'clientName': widget.clientName, 
-        'phone': widget.phone, 
-        'address': widget.address,
-        'gender': widget.gender,
-        'garment': widget.garment, 
-        'measurements': mData, 
-        'materials': materials,
-        'totalBill': total,
-        'advancePayment': adv,
-        'dueAmount': due,
-        'isPinned': _isUrgent,
-        'orderDate': Timestamp.fromDate(_orderDate),
-        'deliveryDate': Timestamp.fromDate(_deliveryDate),
-        'status': 'pending', 
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      await batch.commit();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Saved with Payment Details!"), backgroundColor: Colors.green));
-        Navigator.popUntil(context, (route) => route.isFirst);
-      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+    */
+    if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   InputDecoration _inputDeco(String l, IconData i) {

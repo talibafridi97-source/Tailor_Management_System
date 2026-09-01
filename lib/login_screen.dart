@@ -1,7 +1,11 @@
+
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'signup_screen.dart';
 import 'views/home_screen.dart';
+import 'services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,12 +17,23 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // Base URL for Web vs Emulator/Device
+  String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api/auth/login';
+    } else {
+      return 'http://10.0.2.2:5000/api/auth/login'; // Android Emulator
+    }
+  }
+
   Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all fields")),
       );
@@ -28,23 +43,68 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
       );
-      if (mounted) {
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final token = data['token'];
+
+        // 1. Token ko local storage me save karein aur debug log dikhain
+        if (token != null) {
+          await AuthService.saveToken(token);
+          if (kDebugMode) {
+            print("LOG: Token saved successfully -> $token");
+          }
+        }
+
+        if (!mounted) return;
+
+        // 2. Success Message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? "Login Successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 3. Storage write operation finish hone ke liye chota delay
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        if (!mounted) return;
+
+        // 4. Navigate to HomeScreen
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
+              (route) => false,
         );
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
+      } else {
+        // Error Message from Server
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? "Login failed")),
+          SnackBar(
+            content: Text(data['message'] ?? "Login failed"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Network Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -165,25 +225,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator(color: Colors.white))
                       : ElevatedButton(
-                          onPressed: _login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF1A1A2E),
-                            elevation: 8,
-                            shadowColor: Colors.white.withValues(alpha: 0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            "Login",
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF1A1A2E),
+                      elevation: 8,
+                      shadowColor: Colors.white.withValues(alpha: 0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      "Login",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(

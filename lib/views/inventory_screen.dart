@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -17,9 +17,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const Scaffold(body: Center(child: Text("Please login")));
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -35,7 +32,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         children: [
           _buildHeader(),
           _buildCategoryFilter(),
-          Expanded(child: _buildInventoryList(user.uid)),
+          Expanded(child: _buildInventoryList("current_user_id")),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -104,57 +101,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildInventoryList(String uid) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('inventory').where('userId', isEqualTo: uid).snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        
-        var items = snapshot.data?.docs ?? [];
-        
-        // Manual Sorting: Newest at the bottom
-        items.sort((a, b) {
-          final d1 = a.data() as Map<String, dynamic>;
-          final d2 = b.data() as Map<String, dynamic>;
-          final t1 = d1['timestamp'] as Timestamp?;
-          final t2 = d2['timestamp'] as Timestamp?;
-          if (t1 == null) return 1; 
-          if (t2 == null) return -1;
-          return t1.compareTo(t2);
-        });
-
-        // Search and Category Filter
-        items = items.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final name = (data['name'] ?? '').toString().toLowerCase();
-          final cat = data['category'] ?? '';
-          return name.contains(_searchQuery) && (_selectedCategory == "All" || cat == _selectedCategory);
-        }).toList();
-
-        if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey.shade300),
-                const SizedBox(height: 16),
-                const Text("Inventory is empty", style: TextStyle(color: Colors.grey, fontSize: 16)),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final data = items[index].data() as Map<String, dynamic>;
-            final id = items[index].id;
-            return _inventoryListTile(id, data);
-          },
-        );
-      },
-    );
+    // TODO: Replace with MongoDB inventory fetch
+    return const Center(child: Text("TODO: Connect MongoDB Inventory List", style: TextStyle(color: Colors.grey)));
   }
 
   Widget _inventoryListTile(String id, Map<String, dynamic> data) {
@@ -230,7 +178,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           TextButton(onPressed: () {
-            FirebaseFirestore.instance.collection('inventory').doc(id).delete();
+            // TODO: Implement MongoDB Delete logic
             Navigator.pop(ctx);
           }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
         ],
@@ -257,8 +205,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             _detailRow("Name", data['name']),
             _detailRow("Category", data['category']),
             _detailRow("Quantity", "${data['quantity']} ${data['unit']}"),
-            if (data['timestamp'] != null)
-              _detailRow("Added On", (data['timestamp'] as Timestamp).toDate().toString().split(' ')[0]),
           ],
         ),
         actions: [
@@ -348,30 +294,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
               onPressed: () async {
                 if (name.text.isEmpty || qty.text.isEmpty) return;
-                final data = {
-                  'userId': FirebaseAuth.instance.currentUser!.uid, 
-                  'name': name.text, 
-                  'quantity': int.tryParse(qty.text) ?? 0, 
-                  'category': cat, 
-                  'unit': unit, 
-                  'timestamp': existingData?['timestamp'] ?? FieldValue.serverTimestamp()
-                };
-                
-                try {
-                  if (id == null) {
-                    await FirebaseFirestore.instance.collection('inventory').add(data);
-                  } else {
-                    await FirebaseFirestore.instance.collection('inventory').doc(id).update(data);
-                  }
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Stock Saved Successfully!"), backgroundColor: Colors.green),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-                }
+                // TODO: Implement MongoDB Save/Update logic
+                if (mounted) Navigator.pop(ctx);
               },
               child: Text(id == null ? "Add to Inventory" : "Update Item", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             )),

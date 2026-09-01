@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
 import 'add_customer_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -8,9 +8,6 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const Scaffold(body: Center(child: Text("Please login")));
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -25,77 +22,41 @@ class DashboardScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('orders').where('userId', isEqualTo: user.uid).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          
-          final orders = snapshot.data?.docs ?? [];
-          int pending = 0, complete = 0, delivered = 0;
-          double totalDue = 0;
-          Set<String> customers = {};
-
-          for (var doc in orders) {
-            final data = doc.data() as Map<String, dynamic>;
-            String status = data['status'] ?? 'pending';
-            totalDue += (data['dueAmount'] ?? 0);
-            if (data['clientName'] != null) customers.add(data['clientName']);
-
-            if (status == 'pending') pending++;
-            else if (status == 'complete') complete++;
-            else if (status == 'delivered') delivered++;
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _statCard("Total Baqaya (Receivable)", Icons.account_balance_wallet, Colors.red, "Rs. $totalDue", ""),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: _miniStat("Pending", pending, Colors.orange)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _miniStat("Complete", complete, Colors.green)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: _miniStat("Delivered", delivered, Colors.blue)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _miniStat("Total Items", orders.length, Colors.purple)),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                const Align(alignment: Alignment.centerLeft, child: Text("Customer List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                const SizedBox(height: 16),
-                _buildCustomersList(user.uid),
-                const SizedBox(height: 30),
-                _actionCard(context, "Add New Customer", Icons.person_add, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCustomerScreen()))),
-              ],
-            ),
-          );
-        },
-      ),
+      body: _buildDashboardContent("current_user_id", context),
     );
   }
 
-  Widget _buildCustomersList(String uid) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('customers').where('userId', isEqualTo: uid).snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox();
-        final docs = snapshot.data?.docs ?? [];
-        if (docs.isEmpty) return const Text("No customers saved yet", style: TextStyle(color: Colors.grey));
-
-        return Column(
-          children: docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return _customerCard(context, doc.id, data);
-          }).toList(),
-        );
-      },
+  Widget _buildDashboardContent(String uid, BuildContext context) {
+    // TODO: Replace with MongoDB data fetch
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _statCard("Total Baqaya (Receivable)", Icons.account_balance_wallet, Colors.red, "Rs. 0.0", ""),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _miniStat("Pending", 0, Colors.orange)),
+              const SizedBox(width: 12),
+              Expanded(child: _miniStat("Complete", 0, Colors.green)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _miniStat("Delivered", 0, Colors.blue)),
+              const SizedBox(width: 12),
+              Expanded(child: _miniStat("Total Items", 0, Colors.purple)),
+            ],
+          ),
+          const SizedBox(height: 30),
+          const Align(alignment: Alignment.centerLeft, child: Text("Customer List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+          const SizedBox(height: 16),
+          const Center(child: Text("TODO: Connect MongoDB Customer List", style: TextStyle(color: Colors.grey))),
+          const SizedBox(height: 30),
+          _actionCard(context, "Add New Customer", Icons.person_add, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCustomerScreen()))),
+        ],
+      ),
     );
   }
 
@@ -125,7 +86,7 @@ class DashboardScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           TextButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('customers').doc(id).delete();
+              // TODO: Implement MongoDB Delete logic
               if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text("Delete", style: TextStyle(color: Colors.red)),

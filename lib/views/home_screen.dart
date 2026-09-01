@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
 import 'create_order_screen.dart';
 import 'order_detail_screen.dart';
 import 'dashboard_screen.dart';
@@ -70,7 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirm != true) return;
 
     try {
-      await FirebaseAuth.instance.signOut();
+      // TODO: Implement MongoDB Logout logic
+      if (ctx.mounted) {
+         Navigator.of(ctx).pushReplacementNamed('/login'); // Assuming a login route exists
+      }
     } catch (e) {
       if (ctx.mounted) {
         ScaffoldMessenger.of(ctx).showSnackBar(
@@ -81,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
     final settings = Provider.of<SettingsController>(context);
     final locale = settings.locale.languageCode;
     String t(String key) => AppTranslations.getText(key, locale);
@@ -97,39 +99,24 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
-              builder: (context, snapshot) {
-                String name = t('app_title');
-                String email = user?.email ?? "";
-                String profilePic = "";
-
-                if (snapshot.hasData && snapshot.data!.exists) {
-                  final data = snapshot.data!.data() as Map<String, dynamic>;
-                  name = data['name'] ?? name;
-                  profilePic = data['profilePic'] ?? "";
-                }
-
-                return UserAccountsDrawerHeader(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF0056D2), Color(0xFF4A90E2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  currentAccountPicture: GestureDetector(
-                    onTap: () => _showProfileDialog(context, name, profilePic),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white24,
-                      backgroundImage: profilePic.isNotEmpty ? NetworkImage(profilePic) : null,
-                      child: profilePic.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 35) : null,
-                    ),
-                  ),
-                  accountName: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                  accountEmail: Text(email, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                );
-              },
+            // TODO: Replace with MongoDB User Data fetch
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0056D2), Color(0xFF4A90E2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              currentAccountPicture: GestureDetector(
+                onTap: () => _showProfileDialog(context, t('app_title'), ""),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white24,
+                  child: Icon(Icons.person, color: Colors.white, size: 35),
+                ),
+              ),
+              accountName: Text(t('app_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              accountEmail: const Text("user@example.com", style: TextStyle(color: Colors.white70, fontSize: 13)),
             ),
             _drawerItem(Icons.home, t('home'), Colors.cyanAccent, () {}),
             _drawerItem(Icons.add_shopping_cart, t('create_order'), Colors.orangeAccent, () {
@@ -169,9 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const SizedBox.shrink();
-
     final settings = Provider.of<SettingsController>(context);
     final locale = settings.locale.languageCode;
     String t(String key) => AppTranslations.getText(key, locale);
@@ -227,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          Expanded(child: _buildOrderList(user.uid)),
+          Expanded(child: _buildOrderList("current_user_id")),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -249,252 +233,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildOrderList(String uid) {
-    final settings = Provider.of<SettingsController>(context, listen: false);
-    final locale = settings.locale.languageCode;
-    String t(String key) => AppTranslations.getText(key, locale);
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('orders').where('userId', isEqualTo: uid).where('status', isEqualTo: _statusFilter).snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        
-        var orders = List<QueryDocumentSnapshot>.from(snapshot.data?.docs ?? []);
-
-        // Manual Sorting: Pinned orders first, then by timestamp
-        orders.sort((a, b) {
-          final da = a.data() as Map<String, dynamic>;
-          final db = b.data() as Map<String, dynamic>;
-          bool pinA = da['isPinned'] ?? false;
-          bool pinB = db['isPinned'] ?? false;
-          
-          if (pinA != pinB) return pinB ? 1 : -1;
-          
-          final ta = da['timestamp'] as Timestamp?;
-          final tb = db['timestamp'] as Timestamp?;
-          if (ta == null) return 1;
-          if (tb == null) return -1;
-          return tb.compareTo(ta);
-        });
-
-        if (_searchQuery.isNotEmpty) {
-          orders = orders.where((doc) {
-            final d = doc.data() as Map<String, dynamic>;
-            return (d['clientName'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
-                   (d['phone'] ?? '').toString().contains(_searchQuery);
-          }).toList();
-        }
-
-        if (orders.isEmpty) {
-          String statusText = t(_statusFilter);
-          return Center(child: Text("No $statusText orders found", style: const TextStyle(color: Colors.grey)));
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            final data = orders[index].data() as Map<String, dynamic>;
-            final id = orders[index].id;
-            double due = 0;
-            if (data['dueAmount'] != null) {
-              due = double.tryParse(data['dueAmount'].toString()) ?? 0.0;
-            }
-
-            bool isDark = Theme.of(context).brightness == Brightness.dark;
-            bool isPinned = data['isPinned'] ?? false;
-
-            return GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: data, orderId: id))),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: isPinned ? Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1.5) : null,
-                  boxShadow: [
-                    if (!isDark)
-                      BoxShadow(
-                        color: isPinned ? Colors.redAccent.withOpacity(0.05) : Colors.black.withOpacity(0.04),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 6,
-                        child: Container(color: isPinned ? Colors.redAccent : _statusColor),
-                      ),
-                      if (isPinned)
-                        Positioned(
-                          right: 12,
-                          top: 12,
-                          child: Icon(Icons.push_pin, color: Colors.redAccent.withOpacity(0.8), size: 18),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: (isPinned ? Colors.redAccent : _statusColor).withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                data['garment']?.toString().toLowerCase().contains('suit') ?? false
-                                    ? Icons.checkroom
-                                    : Icons.person,
-                                color: isPinned ? Colors.redAccent : _statusColor,
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        data['clientName'] ?? '',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 17,
-                                          color: isDark ? Colors.white : Colors.black87,
-                                        ),
-                                      ),
-                                      if (isPinned)
-                                        Container(
-                                          margin: const EdgeInsets.only(left: 8),
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(6)),
-                                          child: Text(t('urgent').toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.style, size: 14, color: Colors.grey.shade500),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        data['garment'] ?? '',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.phone, size: 12, color: Colors.grey.shade400),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        data['phone'] ?? '',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade500,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                if (due > 0)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        const Text(
-                                          "Baqaya",
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          "Rs. ${due.toInt()}",
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check, color: Colors.green, size: 20),
-                                  ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    InkWell(
-                                      onTap: () {
-                                        FirebaseFirestore.instance.collection('orders').doc(id).update({
-                                          'isPinned': !isPinned
-                                        });
-                                      },
-                                      child: Icon(
-                                        isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                                        color: isPinned ? Colors.redAccent : Colors.grey.withOpacity(0.5),
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    InkWell(
-                                      onTap: () => _deleteOrderDialog(id),
-                                      child: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.5), size: 20),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+    // TODO: Replace with MongoDB data fetch
+    return const Center(child: Text("TODO: Connect MongoDB Order Stream", style: TextStyle(color: Colors.grey)));
   }
-
-
 
   void _showProfileDialog(BuildContext context, String currentName, String currentPic) {
     final nameController = TextEditingController(text: currentName);
     final picController = TextEditingController(text: currentPic);
-    final user = FirebaseAuth.instance.currentUser;
 
     showDialog(
       context: context,
@@ -521,13 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              if (user != null) {
-                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                  'name': nameController.text.trim(),
-                  'profilePic': picController.text.trim(),
-                });
-                if (context.mounted) Navigator.pop(ctx);
-              }
+              // TODO: Implement MongoDB Profile update
+              if (context.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), foregroundColor: Colors.white),
             child: const Text("Save"),
@@ -548,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('orders').doc(orderId).delete();
+              // TODO: Implement MongoDB Delete logic
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),

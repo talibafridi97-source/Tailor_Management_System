@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
 import 'add_customer_screen.dart';
 import 'edit_customer_screen.dart';
 
@@ -23,20 +23,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text("Customers"),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-        ),
-        body: const Center(child: Text("Please login to view customers")),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -92,67 +78,25 @@ class _CustomerScreenState extends State<CustomerScreen> {
               ),
             ),
           ),
-          Expanded(child: _buildBody(user.uid, context)),
+          Expanded(child: _buildBody("current_user_id", context)),
         ],
       ),
     );
   }
 
   Widget _buildBody(String uid, BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('customers')
-          .where('userId', isEqualTo: uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) return const Center(child: Text("Error loading data"));
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-
-        var customers = snapshot.data?.docs ?? [];
-
-        // Filter logic for Search
-        if (_searchQuery.isNotEmpty) {
-          customers = customers.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final name = (data['name'] ?? '').toString().toLowerCase();
-            final phone = (data['phone'] ?? '').toString().toLowerCase();
-            return name.contains(_searchQuery) || phone.contains(_searchQuery);
-          }).toList();
-        }
-
-        if (customers.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.people_outline, size: 80, color: Colors.grey.shade300),
-                const SizedBox(height: 16),
-                Text(_searchQuery.isEmpty ? "No customers yet" : "No results found", 
-                    style: const TextStyle(fontSize: 18, color: Colors.grey)),
-                const SizedBox(height: 24),
-                if (_searchQuery.isEmpty) _addCustomerButton(context),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: customers.length,
-                itemBuilder: (context, index) {
-                  final doc = customers[index];
-                  final data = doc.data() as Map<String, dynamic>;
-                  return _customerCard(context, doc.id, data);
-                },
-              ),
-            ),
-            Padding(padding: const EdgeInsets.all(16), child: _addCustomerButton(context)),
-          ],
-        );
-      },
+    // TODO: Replace with MongoDB customer fetch
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.people_outline, size: 80, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          const Text("TODO: Connect MongoDB Customer List", style: TextStyle(fontSize: 18, color: Colors.grey)),
+          const SizedBox(height: 24),
+          _addCustomerButton(context),
+        ],
+      ),
     );
   }
 
@@ -251,13 +195,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null) return;
-              final batch = FirebaseFirestore.instance.batch();
-              batch.delete(FirebaseFirestore.instance.collection('customers').doc(docId));
-              final orders = await FirebaseFirestore.instance.collection('orders').where('phone', isEqualTo: phone).get();
-              for (var doc in orders.docs) batch.delete(doc.reference);
-              await batch.commit();
+              // TODO: Implement MongoDB Delete logic
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

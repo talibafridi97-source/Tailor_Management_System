@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
 
@@ -95,11 +95,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showBusinessProfileDialog(BuildContext context, String Function(String) t) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    final data = doc.data() ?? {};
+    final data = {};
 
     final shopNameController = TextEditingController(text: data['shopName'] ?? '');
     final contactController = TextEditingController(text: data['shopContact'] ?? '');
@@ -144,12 +140,7 @@ class SettingsScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                'shopName': shopNameController.text.trim(),
-                'shopContact': contactController.text.trim(),
-                'shopAddress': addressController.text.trim(),
-                'shopLogo': logoController.text.trim(),
-              });
+              // TODO: Implement MongoDB User Profile Update
               if (context.mounted) {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('success')), backgroundColor: Colors.green));
@@ -288,7 +279,7 @@ class SettingsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               try {
-                await FirebaseAuth.instance.currentUser?.updatePassword(passController.text);
+                // TODO: Implement MongoDB Password Update
                 if (context.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('password_updated')), backgroundColor: Colors.green));
@@ -321,7 +312,7 @@ class SettingsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               try {
-                await FirebaseAuth.instance.currentUser?.updateEmail(emailController.text);
+                // TODO: Implement MongoDB Email Update
                 if (context.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('email_updated')), backgroundColor: Colors.green));
@@ -349,7 +340,7 @@ class SettingsScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+              // TODO: Implement MongoDB Logout
               if (context.mounted) {
                 Navigator.pop(ctx);
                 Navigator.pop(context); // Go back from settings to trigger main.dart listener

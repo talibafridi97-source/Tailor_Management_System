@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 
 class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -16,10 +16,10 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  String _formatDate(Timestamp? ts) {
+  String _formatDate(dynamic ts) {
     if (ts == null) return '-';
-    final date = ts.toDate();
-    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+    // TODO: Replace with MongoDB date parsing
+    return ts.toString();
   }
 
   Color get _statusColor {
@@ -37,8 +37,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget build(BuildContext context) {
     final measurements = widget.order['measurements'] as Map<String, dynamic>? ?? {};
     final materials = widget.order['materials'] as Map<String, dynamic>? ?? {};
-    final orderDate = widget.order['orderDate'] as Timestamp?;
-    final deliveryDate = widget.order['deliveryDate'] as Timestamp?;
+    final orderDate = widget.order['orderDate'];
+    final deliveryDate = widget.order['deliveryDate'];
 
     // Due Payment Calculations
     double totalBill = (widget.order['totalBill'] ?? 0).toDouble();
@@ -130,7 +130,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('orders').doc(widget.orderId).delete();
+              // TODO: Implement MongoDB Delete logic
               if (mounted) {
                 Navigator.pop(ctx);
                 Navigator.pop(context);
@@ -145,7 +145,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _buildInfoCard(Timestamp? orderDate, Timestamp? deliveryDate) {
+  Widget _buildInfoCard(dynamic orderDate, dynamic deliveryDate) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -256,10 +256,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               try {
-                await FirebaseFirestore.instance.collection('orders').doc(widget.orderId).update({
-                  'advancePayment': widget.order['totalBill'],
-                  'dueAmount': 0,
-                });
+                // TODO: Implement MongoDB Payment Update
                 if (mounted) {
                   Navigator.pop(ctx);
                   Navigator.pop(context); // Go back to refresh list
@@ -278,7 +275,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   void _updateStatus(String status) async {
-    await FirebaseFirestore.instance.collection('orders').doc(widget.orderId).update({'status': status});
+    // TODO: Implement MongoDB Status Update
     if (mounted) Navigator.pop(context);
   }
 

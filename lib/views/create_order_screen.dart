@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
 import 'measurement_screen.dart';
 
 class CreateOrderScreen extends StatefulWidget {
@@ -38,29 +38,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   Future<void> _fetchCustomer(String phone) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _isFetching) return;
-
-    setState(() => _isFetching = true);
-    try {
-      final query = await FirebaseFirestore.instance.collection('customers')
-          .where('userId', isEqualTo: user.uid)
-          .where('phone', isEqualTo: phone)
-          .get();
-
-      if (query.docs.isNotEmpty) {
-        final data = query.docs.first.data();
-        setState(() {
-          if (_clientNameController.text.isEmpty) _clientNameController.text = data['name'] ?? '';
-          _addressController.text = data['address'] ?? '';
-          _selectedGender = data['gender'];
-          _oldMeasurements = data['measurements'];
-        });
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Details auto-filled."), duration: Duration(seconds: 1)));
-      }
-    } finally {
-      if (mounted) setState(() => _isFetching = false);
-    }
+    // TODO: Implement MongoDB Customer fetch
   }
 
   @override
