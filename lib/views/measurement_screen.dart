@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'settings_provider.dart';
-import 'app_translations.dart';
+import '../controllers/settings_controller.dart';
+import '../core/app_translations.dart';
 
 class MeasurementScreen extends StatefulWidget {
   final String clientName;
@@ -116,7 +116,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   @override
   Widget build(BuildContext context) {
     final measurements = _getMeasurements();
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = Provider.of<SettingsController>(context);
     final locale = settings.locale.languageCode;
     String t(String key) => AppTranslations.getText(key, locale);
 

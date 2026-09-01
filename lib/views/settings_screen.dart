@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'settings_provider.dart';
-import 'app_translations.dart';
+import '../controllers/settings_controller.dart';
+import '../core/app_translations.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = Provider.of<SettingsController>(context);
     final locale = settings.locale.languageCode;
 
     String t(String key) => AppTranslations.getText(key, locale);
@@ -163,7 +163,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showNotificationSettingsDialog(BuildContext context, SettingsProvider settings, String Function(String) t) {
+  void _showNotificationSettingsDialog(BuildContext context, SettingsController settings, String Function(String) t) {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -199,7 +199,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showMeasurementUnitDialog(BuildContext context, SettingsProvider settings, String Function(String) t) {
+  void _showMeasurementUnitDialog(BuildContext context, SettingsController settings, String Function(String) t) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -363,7 +363,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showThemeLanguageDialog(BuildContext context, SettingsProvider settings, String Function(String) t) {
+  void _showThemeLanguageDialog(BuildContext context, SettingsController settings, String Function(String) t) {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -402,7 +402,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showLanguagePicker(BuildContext context, SettingsProvider settings, String Function(String) t) {
+  void _showLanguagePicker(BuildContext context, SettingsController settings, String Function(String) t) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
@@ -423,7 +423,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _langOption(BuildContext context, SettingsProvider settings, String name, String code) {
+  Widget _langOption(BuildContext context, SettingsController settings, String name, String code) {
     bool isSelected = settings.locale.languageCode == code;
     return ListTile(
       title: Text(name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),

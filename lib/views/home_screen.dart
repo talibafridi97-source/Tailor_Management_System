@@ -8,8 +8,8 @@ import 'customer_screen.dart';
 import 'inventory_screen.dart';
 import 'due_payment_screen.dart';
 import 'settings_screen.dart';
-import 'app_translations.dart';
-import 'settings_provider.dart';
+import '../core/app_translations.dart';
+import '../controllers/settings_controller.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDrawer(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = Provider.of<SettingsController>(context);
     final locale = settings.locale.languageCode;
     String t(String key) => AppTranslations.getText(key, locale);
 
@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = Provider.of<SettingsController>(context);
     final locale = settings.locale.languageCode;
     String t(String key) => AppTranslations.getText(key, locale);
 
@@ -249,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildOrderList(String uid) {
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final settings = Provider.of<SettingsController>(context, listen: false);
     final locale = settings.locale.languageCode;
     String t(String key) => AppTranslations.getText(key, locale);
 

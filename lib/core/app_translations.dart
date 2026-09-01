@@ -108,7 +108,7 @@ class AppTranslations {
       'app_title': 'दर्जी बुक',
       'settings': 'सेटिंग्स',
       'theme': 'थीम और भाषा',
-      'theme_sub': 'थीम (ڈارک/لائٹ) और भाषा बदलें',
+      'theme_sub': 'थीम (ڈारک/लائٹ) और भाषा बदलें',
       'dark_mode': 'डार्क मोड',
       'language': 'भाषा',
       'business_profile': 'व्यवसाय प्रोफ़ाइल',

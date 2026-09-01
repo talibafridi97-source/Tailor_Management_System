@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.untitled2"
-        minSdk = 21 // Firebase requires at least 21 or multidex
+        minSdk = flutter.minSdkVersion // Firebase requires at least 21 or multidex
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

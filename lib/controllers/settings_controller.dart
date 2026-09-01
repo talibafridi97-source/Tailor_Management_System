@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsProvider extends ChangeNotifier {
+class SettingsController extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light;
   Locale _locale = const Locale('en');
   bool _deliveryReminder = true;
@@ -14,7 +14,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get paymentReminder => _paymentReminder;
   String get measurementUnit => _measurementUnit;
 
-  SettingsProvider() {
+  SettingsController() {
     _loadSettings();
   }
 

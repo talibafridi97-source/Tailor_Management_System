@@ -3,9 +3,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'Tailor_App/home_screen.dart';
-import 'Tailor_App/tailor_book.dart';
-import 'Tailor_App/settings_provider.dart';
+import 'views/home_screen.dart';
+import 'views/tailor_book.dart';
+import 'controllers/settings_controller.dart';
 import 'package:provider/provider.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -18,7 +18,7 @@ void main() async {
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => SettingsProvider(),
+      create: (_) => SettingsController(),
       child: const MyApp(),
     ),
   );
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = Provider.of<SettingsController>(context);
 
     return MaterialApp(
       navigatorKey: _navigatorKey,
