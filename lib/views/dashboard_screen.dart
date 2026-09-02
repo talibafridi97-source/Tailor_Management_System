@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
-// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
+import 'package:provider/provider.dart';
+import '../controllers/order_provider.dart';
+import '../controllers/customer_provider.dart';
 import 'add_customer_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<OrderProvider>().fetchOrders();
+      context.read<CustomerProvider>().fetchCustomers();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,81 +32,40 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         title: const Text("Business Dashboard", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
-      body: _buildDashboardContent("current_user_id", context),
-    );
-  }
+      body: Consumer2<OrderProvider, CustomerProvider>(
+        builder: (context, orderProv, custProv, child) {
+          if (orderProv.isLoading || custProv.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-  Widget _buildDashboardContent(String uid, BuildContext context) {
-    // TODO: Replace with MongoDB data fetch
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _statCard("Total Baqaya (Receivable)", Icons.account_balance_wallet, Colors.red, "Rs. 0.0", ""),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _miniStat("Pending", 0, Colors.orange)),
-              const SizedBox(width: 12),
-              Expanded(child: _miniStat("Complete", 0, Colors.green)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _miniStat("Delivered", 0, Colors.blue)),
-              const SizedBox(width: 12),
-              Expanded(child: _miniStat("Total Items", 0, Colors.purple)),
-            ],
-          ),
-          const SizedBox(height: 30),
-          const Align(alignment: Alignment.centerLeft, child: Text("Customer List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-          const SizedBox(height: 16),
-          const Center(child: Text("TODO: Connect MongoDB Customer List", style: TextStyle(color: Colors.grey))),
-          const SizedBox(height: 30),
-          _actionCard(context, "Add New Customer", Icons.person_add, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCustomerScreen()))),
-        ],
-      ),
-    );
-  }
-
-  Widget _customerCard(BuildContext context, String id, Map<String, dynamic> data) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
-      child: ListTile(
-        leading: const CircleAvatar(backgroundColor: Color(0xFFF5F7FA), child: Icon(Icons.person, color: Color(0xFF1A1A2E), size: 20)),
-        title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(data['phone'] ?? '', style: const TextStyle(fontSize: 12)),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-          onPressed: () => _deleteCustomerDialog(context, id, data['name'] ?? 'this customer'),
-        ),
-      ),
-    );
-  }
-
-  void _deleteCustomerDialog(BuildContext context, String id, String name) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text("Delete $name?"),
-        content: const Text("Are you sure? This will remove the customer profile permanently."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-          TextButton(
-            onPressed: () async {
-              // TODO: Implement MongoDB Delete logic
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _statCard("Total Baqaya", Icons.account_balance_wallet, Colors.red, "Rs. ${orderProv.totalDueAmount.toInt()}", ""),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: _miniStat("Pending", orderProv.pendingCount, Colors.orange)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _miniStat("Complete", orderProv.completeCount, Colors.green)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _miniStat("Total Customers", custProv.customers.length, Colors.blue)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _miniStat("Total Orders", orderProv.orders.length, Colors.purple)),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                _actionCard(context, "Add New Customer", Icons.person_add, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCustomerScreen()))),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

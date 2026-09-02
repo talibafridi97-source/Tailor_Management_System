@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 import 'package:provider/provider.dart';
 import '../controllers/settings_controller.dart';
+import '../controllers/order_provider.dart';
+import '../controllers/customer_provider.dart';
 import '../core/app_translations.dart';
 
 class MeasurementScreen extends StatefulWidget {
@@ -37,15 +37,11 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     'Bukram': TextEditingController(),
   };
 
-  // Payment Controllers
   final TextEditingController _totalPriceController = TextEditingController();
   final TextEditingController _advanceController = TextEditingController();
   bool _isUrgent = false;
-  
-  // final FirebaseFirestore _firestore = FirebaseFirestore.instance; // TODO: Replace with MongoDB
   bool _isLoading = false;
 
-  // User? get _user => FirebaseAuth.instance.currentUser; // TODO: Replace with MongoDB User
   DateTime _orderDate = DateTime.now();
   DateTime _deliveryDate = DateTime.now().add(const Duration(days: 7));
 
@@ -74,23 +70,8 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           {"label": "Collar", "icon": Icons.watch},
           {"label": "Arm Hole", "icon": Icons.adjust},
         ];
-      case "Shirt & Pant":
-        return [
-          {"label": "Shirt Length", "icon": Icons.straighten},
-          {"label": "Shoulder", "icon": Icons.settings_ethernet},
-          {"label": "Chest", "icon": Icons.accessibility_new},
-          {"label": "Sleeve Length", "icon": Icons.height},
-          {"label": "Collar", "icon": Icons.watch},
-          {"label": "Pant Length", "icon": Icons.straighten},
-          {"label": "Pant Waist", "icon": Icons.circle},
-          {"label": "Hip", "icon": Icons.circle_outlined},
-          {"label": "Pant Bottom", "icon": Icons.circle_outlined},
-        ];
       default:
-        return [
-          {"label": "Length", "icon": Icons.straighten},
-          {"label": "Shoulder", "icon": Icons.settings_ethernet},
-        ];
+        return [{"label": "Length", "icon": Icons.straighten}];
     }
   }
 
@@ -99,8 +80,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     super.initState();
     for (var m in _getMeasurements()) {
       String label = m["label"];
-      String initialValue = widget.initialMeasurements?[label]?.toString() ?? "";
-      _controllers[label] = TextEditingController(text: initialValue);
+      _controllers[label] = TextEditingController(text: widget.initialMeasurements?[label]?.toString() ?? "");
     }
   }
 
@@ -140,13 +120,13 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                   _clientCard(),
                   _datesCard(),
                   _urgentToggle(t),
-                  _paymentCard(), // Added Payment Card
+                  _paymentCard(),
                   const SizedBox(height: 10),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("Measurements", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
+                      child: Text("Measurements", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   ListView.builder(
@@ -161,13 +141,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                         child: _measurementInput(m),
                       );
                     },
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text("Material Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
-                    ),
                   ),
                   _materialsSection(),
                 ],
@@ -184,11 +157,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: _isUrgent ? Border.all(color: Colors.redAccent, width: 2) : null,
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: SwitchListTile(
         title: Text(t('mark_urgent'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
         secondary: const Icon(Icons.push_pin, color: Colors.redAccent),
@@ -204,30 +173,11 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text("Due Payment (Hisab)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1A1A2E))),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _totalPriceController,
-                  keyboardType: TextInputType.number,
-                  decoration: _inputDeco("Total Bill (Rs)", Icons.payments),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _advanceController,
-                  keyboardType: TextInputType.number,
-                  decoration: _inputDeco("Advance (Rs)", Icons.account_balance_wallet),
-                ),
-              ),
-            ],
-          ),
+          Expanded(child: TextField(controller: _totalPriceController, keyboardType: TextInputType.number, decoration: _inputDeco("Total Bill", Icons.payments))),
+          const SizedBox(width: 12),
+          Expanded(child: TextField(controller: _advanceController, keyboardType: TextInputType.number, decoration: _inputDeco("Advance", Icons.account_balance_wallet))),
         ],
       ),
     );
@@ -235,34 +185,17 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
 
   Widget _materialsSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: Column(
-        children: [
-          _materialInput("Fabric", Icons.texture, _materialControllers['Fabric']!),
-          const SizedBox(height: 12),
-          _materialInput("Buttons", Icons.radio_button_checked, _materialControllers['Buttons']!),
-          const SizedBox(height: 12),
-          _materialInput("Thread", Icons.line_weight, _materialControllers['Thread']!),
-          const SizedBox(height: 12),
-          _materialInput("Lace", Icons.border_style, _materialControllers['Lace']!),
-          const SizedBox(height: 12),
-          _materialInput("Bukram", Icons.layers, _materialControllers['Bukram']!),
-        ],
-      ),
-    );
-  }
-
-  Widget _materialInput(String label, IconData icon, TextEditingController controller) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF0056D2)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: Colors.grey.shade50,
+        children: _materialControllers.keys.map((k) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            controller: _materialControllers[k],
+            decoration: _inputDeco(k, Icons.texture),
+          ),
+        )).toList(),
       ),
     );
   }
@@ -271,16 +204,16 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: Row(
         children: [
-          CircleAvatar(backgroundColor: const Color(0xFF0056D2), child: const Icon(Icons.person, color: Colors.white)),
+          const CircleAvatar(child: Icon(Icons.person)),
           const SizedBox(width: 14),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(widget.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text("${widget.gender.toUpperCase()} - ${widget.garment}", style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              Text(widget.garment, style: const TextStyle(color: Colors.grey, fontSize: 12)),
             ],
           ),
         ],
@@ -295,45 +228,30 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: Column(
         children: [
-          _dateTile(Icons.calendar_today, "Order Date", _orderDate, true, const Color(0xFFFF8C00)),
-          const Divider(height: 20),
-          _dateTile(Icons.event, "Delivery Date", _deliveryDate, false, const Color(0xFF00C853)),
+          _dateTile("Order Date", _orderDate, true),
+          const Divider(),
+          _dateTile("Delivery Date", _deliveryDate, false),
         ],
       ),
     );
   }
 
-  Widget _dateTile(IconData icon, String label, DateTime date, bool isOrder, Color color) {
-    return GestureDetector(
+  Widget _dateTile(String label, DateTime date, bool isOrder) {
+    return ListTile(
+      title: Text(label),
+      trailing: Text("${date.day}/${date.month}/${date.year}", style: const TextStyle(fontWeight: FontWeight.bold)),
       onTap: () async {
         final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2035));
         if (picked != null) setState(() => isOrder ? _orderDate = picked : _deliveryDate = picked);
       },
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
-          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text("${date.day}/${date.month}/${date.year}", style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-        ],
-      ),
     );
   }
 
   Widget _measurementInput(Map<String, dynamic> m) {
-    return TextFormField(
+    return TextField(
       controller: _controllers[m["label"]],
       keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: m["label"],
-        prefixIcon: Icon(m["icon"], color: const Color(0xFF6C63FF)),
-        suffixText: "inch",
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.all(16),
-      ),
+      decoration: _inputDeco(m["label"], m["icon"]),
     );
   }
 
@@ -341,25 +259,20 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: SizedBox(
-        width: double.infinity,
-        height: 58,
+        width: double.infinity, height: 55,
         child: ElevatedButton(
           onPressed: _isLoading ? null : _onSave,
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Confirm & Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Save Order", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         ),
       ),
     );
   }
 
   Future<void> _onSave() async {
-    // TODO: Implement MongoDB Save/Update logic
-    /*
-    final currentUser = _user;
-    if (currentUser == null) return;
     setState(() => _isLoading = true);
+
     try {
-      // Payment Calculation
       double total = double.tryParse(_totalPriceController.text) ?? 0.0;
       double adv = double.tryParse(_advanceController.text) ?? 0.0;
       double due = total - adv;
@@ -367,28 +280,56 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       Map<String, String> mData = {};
       _controllers.forEach((k, v) => mData[k] = v.text);
 
-      Map<String, String> materials = {};
-      _materialControllers.forEach((k, v) => materials[k] = v.text);
+      List<String> materials = [];
+      _materialControllers.forEach((k, v) {
+        if (v.text.isNotEmpty) materials.add("$k: ${v.text}");
+      });
 
-      // Save to MongoDB
-      
+      // Call Providers
+      final customerProvider = context.read<CustomerProvider>();
+      final orderProvider = context.read<OrderProvider>();
+
+      final custSaved = await customerProvider.addCustomer(
+        name: widget.clientName,
+        phone: widget.phone,
+        address: widget.address,
+        measurements: mData,
+      );
+
+      final orderSaved = await orderProvider.addOrder(
+        clientName: widget.clientName,
+        phone: widget.phone,
+        garment: widget.garment,
+        measurements: mData,
+        materials: materials,
+        totalBill: total,
+        advancePayment: adv,
+        dueAmount: due,
+        orderDate: _orderDate,
+        deliveryDate: _deliveryDate,
+        isPinned: _isUrgent,
+      );
+
+      if (mounted) {
+        if (custSaved && orderSaved) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Saved Successfully!")));
+          Navigator.popUntil(context, (route) => route.isFirst);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to save order"), backgroundColor: Colors.red));
+        }
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-    */
-    if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   InputDecoration _inputDeco(String l, IconData i) {
     return InputDecoration(
-      labelText: l,
-      prefixIcon: Icon(i, size: 20, color: const Color(0xFF0056D2)),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      filled: true,
-      fillColor: Colors.grey.shade50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      labelText: l, prefixIcon: Icon(i),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+      filled: true, fillColor: Colors.white,
     );
   }
 }

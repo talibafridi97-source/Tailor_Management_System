@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+import 'package:provider/provider.dart';
+import '../controllers/order_provider.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -130,8 +131,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              // TODO: Implement MongoDB Delete logic
-              if (mounted) {
+              final success = await context.read<OrderProvider>().deleteOrder(widget.orderId);
+              if (mounted && success) {
                 Navigator.pop(ctx);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Deleted"), backgroundColor: Colors.redAccent));
@@ -256,8 +257,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               try {
-                // TODO: Implement MongoDB Payment Update
-                if (mounted) {
+                final total = (widget.order['totalBill'] ?? 0).toDouble();
+                final success = await context.read<OrderProvider>().collectPayment(widget.orderId, total);
+                if (mounted && success) {
                   Navigator.pop(ctx);
                   Navigator.pop(context); // Go back to refresh list
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Updated Successfully!"), backgroundColor: Colors.green));
@@ -275,8 +277,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   void _updateStatus(String status) async {
-    // TODO: Implement MongoDB Status Update
-    if (mounted) Navigator.pop(context);
+    final success = await context.read<OrderProvider>().updateStatus(widget.orderId, status);
+    if (mounted && success) Navigator.pop(context);
   }
 
   Widget _iconBox(IconData icon, Color color) {

@@ -23,9 +23,9 @@ class _SignupScreenState extends State<SignupScreen> {
   // Base URL: Chrome Web vs Android Emulator
   String get _baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:5000/api/auth/signup';
+      return 'http://localhost:5000/api/auth/register';
     } else {
-      return 'http://10.0.2.2:5000/api/auth/signup'; // Android Emulator
+      return 'http://192.168.10.7:5000/api/auth/register'; // Computer's Local IP for Physical Device
     }
   }
 
