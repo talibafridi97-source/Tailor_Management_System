@@ -312,10 +312,13 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
 
       if (mounted) {
         if (custSaved && orderSaved) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Saved Successfully!")));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Saved Successfully!"), backgroundColor: Colors.green));
           Navigator.popUntil(context, (route) => route.isFirst);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to save order"), backgroundColor: Colors.red));
+          String errorDetail = orderProvider.errorMessage ?? "Server connection failed";
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $errorDetail"), backgroundColor: Colors.red, duration: const Duration(seconds: 4))
+          );
         }
       }
     } catch (e) {

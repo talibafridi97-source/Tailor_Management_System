@@ -4,24 +4,40 @@ import '../services/order_service.dart';
 class OrderProvider extends ChangeNotifier {
   List<dynamic> _orders = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   List<dynamic> get orders => _orders;
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   int get pendingCount => _orders.where((o) => o['status']?.toString().toLowerCase() == 'pending').length;
   int get completeCount => _orders.where((o) => o['status']?.toString().toLowerCase() == 'complete').length;
-  double get totalDueAmount => _orders.fold(0.0, (sum, o) => sum + (double.tryParse(o['dueAmount']?.toString() ?? '0') ?? 0.0));
+  double get totalDueAmount {
+    try {
+      return _orders.fold(0.0, (sum, o) => sum + (double.tryParse(o['dueAmount']?.toString() ?? '0') ?? 0.0));
+    } catch (e) {
+      return 0.0;
+    }
+  }
 
   Future<void> fetchOrders() async {
     _isLoading = true;
+    _errorMessage = null;
+    // notification delay remove
     notifyListeners();
 
     try {
-      final List<dynamic> freshOrders = await OrderService.getOrders();
-      _orders = freshOrders;
-      print("PROVIDER UPDATED WITH: ${_orders.length} orders");
+      final result = await OrderService.getOrdersVerbose();
+      if (result['success']) {
+        _orders = result['data'] ?? [];
+        print("PROVIDER: Loaded ${_orders.length} orders successfully");
+      } else {
+        _errorMessage = result['message'];
+        print("PROVIDER ERROR: $_errorMessage");
+      }
     } catch (e) {
-      debugPrint("PROVIDER FETCH ERROR: $e");
+      _errorMessage = e.toString();
+      debugPrint("PROVIDER EXCEPTION: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -40,7 +56,6 @@ class OrderProvider extends ChangeNotifier {
     required DateTime orderDate,
     required DateTime deliveryDate,
     required bool isPinned,
-    String status = 'pending',
   }) async {
     final result = await OrderService.createOrder(
       clientName: clientName,
@@ -57,10 +72,13 @@ class OrderProvider extends ChangeNotifier {
     );
 
     if (result['success']) {
-      await fetchOrders(); 
+      await fetchOrders(); // Force immediate UI update
       return true;
+    } else {
+      _errorMessage = result['message'];
+      notifyListeners();
+      return false;
     }
-    return false;
   }
 
   Future<bool> updateStatus(String orderId, String status) async {

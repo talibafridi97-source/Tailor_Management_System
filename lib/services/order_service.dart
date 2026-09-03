@@ -43,19 +43,31 @@ class OrderService {
         }),
       );
 
+      print("CREATE ORDER STATUS: ${response.statusCode}");
       print("CREATE ORDER RESPONSE: ${response.body}");
-      final data = jsonDecode(response.body);
-      return {'success': response.statusCode == 201 || response.statusCode == 200, 'data': data};
+
+      final dynamic data = _safeDecode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      } else {
+        return {
+          'success': false, 
+          'message': data is Map ? (data['message'] ?? 'Error ${response.statusCode}') : 'Server error ${response.statusCode}'
+        };
+      }
     } catch (e) {
-      print("CREATE ORDER ERROR: $e");
-      return {'success': false, 'message': e.toString()};
+      print("CREATE ORDER EXCEPTION: $e");
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
   }
 
-  static Future<List<dynamic>> getOrders() async {
+  static Future<Map<String, dynamic>> getOrdersVerbose() async {
     try {
       final token = await AuthService.getToken();
-      print("FETCHING ORDERS WITH TOKEN: ${token?.substring(0, 10)}...");
+      if (token == null || token.isEmpty) {
+        return {'success': false, 'message': 'Auth Token Missing. Please login again.'};
+      }
 
       final response = await http.get(
         Uri.parse(baseUrl),
@@ -65,24 +77,47 @@ class OrderService {
         },
       );
 
-      print("GET ORDERS STATUS: ${response.statusCode}");
-      print("GET ORDERS BODY: ${response.body}");
+      print("DEBUG: GET Orders from -> $baseUrl");
+      print("DEBUG: Status Code -> ${response.statusCode}");
+
+      if (response.body.startsWith('<!DOCTYPE')) {
+        return {'success': false, 'message': 'Backend Error: Received HTML instead of JSON.'};
+      }
 
       if (response.statusCode == 200) {
         final dynamic decoded = jsonDecode(response.body);
+        List<dynamic> ordersList = [];
         
         if (decoded is List) {
-          return decoded;
-        } 
-        else if (decoded is Map) {
-          // Robust checking for common response keys
-          return decoded['data'] ?? decoded['orders'] ?? decoded['allOrders'] ?? [];
+          ordersList = decoded;
+        } else if (decoded is Map) {
+          ordersList = decoded['data'] ?? decoded['orders'] ?? decoded['allOrders'] ?? [];
         }
+        
+        return {'success': true, 'data': ordersList};
+      } else {
+        final dynamic data = _safeDecode(response.body);
+        return {
+          'success': false, 
+          'message': data is Map ? (data['message'] ?? 'Error ${response.statusCode}') : 'Server error ${response.statusCode}'
+        };
       }
-      return [];
     } catch (e) {
-      print("GET ORDERS ERROR: $e");
-      return [];
+      print("GET ORDERS EXCEPTION: $e");
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+    }
+  }
+
+  static Future<List<dynamic>> getOrders() async {
+    final res = await getOrdersVerbose();
+    return res['success'] ? res['data'] : [];
+  }
+
+  static dynamic _safeDecode(String body) {
+    try {
+      return jsonDecode(body);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -98,7 +133,6 @@ class OrderService {
         body: jsonEncode({'status': status}),
       );
 
-      print("UPDATE STATUS RESPONSE: ${response.body}");
       return {'success': response.statusCode == 200};
     } catch (e) {
       return {'success': false, 'message': e.toString()};

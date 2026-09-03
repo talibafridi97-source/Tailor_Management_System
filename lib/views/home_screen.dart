@@ -270,9 +270,28 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        var filteredOrders = provider.orders.where((o) => 
-          o['status']?.toString().toLowerCase() == _statusFilter
-        ).toList();
+        if (provider.errorMessage != null && provider.orders.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                  const SizedBox(height: 10),
+                  Text(provider.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(onPressed: () => provider.fetchOrders(), child: const Text("Retry")),
+                ],
+              ),
+            ),
+          );
+        }
+
+        var filteredOrders = provider.orders.where((o) {
+           final s = o['status']?.toString().toLowerCase() ?? 'pending';
+           return s == _statusFilter;
+        }).toList();
 
         if (_searchQuery.isNotEmpty) {
           filteredOrders = filteredOrders.where((o) => 
