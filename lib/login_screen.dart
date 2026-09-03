@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (kIsWeb) {
       return 'http://localhost:5000/api/auth/login';
     } else {
-      return 'http://192.168.10.7:5000/api/auth/login'; // Computer's Local IP for Physical Device
+      return 'http://192.168.10.9:5000/api/auth/login'; // Computer's Local IP for Physical Device
     }
   }
 

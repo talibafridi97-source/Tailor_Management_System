@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class OrderService {
-  static const String baseUrl = 'http://192.168.10.7:5000/api/orders';
+  // Local IP updated to 192.168.10.9
+  static const String baseUrl = 'http://192.168.10.9:5000/api/orders';
 
   static Future<Map<String, dynamic>> createOrder({
     required String clientName,
@@ -44,8 +45,6 @@ class OrderService {
       );
 
       print("CREATE ORDER STATUS: ${response.statusCode}");
-      print("CREATE ORDER RESPONSE: ${response.body}");
-
       final dynamic data = _safeDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -53,12 +52,11 @@ class OrderService {
       } else {
         return {
           'success': false, 
-          'message': data is Map ? (data['message'] ?? 'Error ${response.statusCode}') : 'Server error ${response.statusCode}'
+          'message': 'Server Error ${response.statusCode}: ${data is Map ? data['message'] : 'Check Backend'}'
         };
       }
     } catch (e) {
-      print("CREATE ORDER EXCEPTION: $e");
-      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+      return {'success': false, 'message': 'Connection Error: $e'};
     }
   }
 
@@ -66,9 +64,10 @@ class OrderService {
     try {
       final token = await AuthService.getToken();
       if (token == null || token.isEmpty) {
-        return {'success': false, 'message': 'Auth Token Missing. Please login again.'};
+        return {'success': false, 'message': 'Please Logout and Login again (Token Missing)'};
       }
 
+      print("DEBUG: Fetching from -> $baseUrl");
       final response = await http.get(
         Uri.parse(baseUrl),
         headers: {
@@ -77,11 +76,16 @@ class OrderService {
         },
       );
 
-      print("DEBUG: GET Orders from -> $baseUrl");
       print("DEBUG: Status Code -> ${response.statusCode}");
 
-      if (response.body.startsWith('<!DOCTYPE')) {
-        return {'success': false, 'message': 'Backend Error: Received HTML instead of JSON.'};
+      // Agar HTML milay (yaani 404 ya crash)
+      if (response.body.toLowerCase().contains('<!doctype html>') || 
+          response.body.toLowerCase().contains('<html>')) {
+        print("CRITICAL: Backend returned HTML. Check if GET route exists.");
+        return {
+          'success': false, 
+          'message': 'Backend Error (${response.statusCode}): Received HTML. \n\nCheck if GET route is defined in Node.js'
+        };
       }
 
       if (response.statusCode == 200) {
@@ -96,15 +100,10 @@ class OrderService {
         
         return {'success': true, 'data': ordersList};
       } else {
-        final dynamic data = _safeDecode(response.body);
-        return {
-          'success': false, 
-          'message': data is Map ? (data['message'] ?? 'Error ${response.statusCode}') : 'Server error ${response.statusCode}'
-        };
+        return {'success': false, 'message': 'Server returned ${response.statusCode}'};
       }
     } catch (e) {
-      print("GET ORDERS EXCEPTION: $e");
-      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
@@ -121,6 +120,7 @@ class OrderService {
     }
   }
 
+  // Baqi methods (Update/Delete) wese hi rahenge
   static Future<Map<String, dynamic>> updateOrderStatus(String orderId, String status) async {
     try {
       final token = await AuthService.getToken();
@@ -132,45 +132,30 @@ class OrderService {
         },
         body: jsonEncode({'status': status}),
       );
-
       return {'success': response.statusCode == 200};
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
+      return {'success': false};
     }
   }
 
   static Future<Map<String, dynamic>> updatePayment(String orderId, double totalBill) async {
     try {
       final token = await AuthService.getToken();
-      final response = await http.put(
-        Uri.parse('$baseUrl/$orderId'),
-        headers: {
+      final response = await http.put(Uri.parse('$baseUrl/$orderId'), headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'advancePayment': totalBill,
-          'dueAmount': 0,
-        }),
-      );
+        }, body: jsonEncode({'advancePayment': totalBill, 'dueAmount': 0}));
       return {'success': response.statusCode == 200};
-    } catch (e) {
-      return {'success': false};
-    }
+    } catch (e) { return {'success': false}; }
   }
 
   static Future<Map<String, dynamic>> deleteOrder(String orderId) async {
     try {
       final token = await AuthService.getToken();
-      final response = await http.delete(
-        Uri.parse('$baseUrl/$orderId'),
-        headers: {
+      final response = await http.delete(Uri.parse('$baseUrl/$orderId'), headers: {
           'Authorization': 'Bearer $token',
-        },
-      );
+        });
       return {'success': response.statusCode == 200};
-    } catch (e) {
-      return {'success': false};
-    }
+    } catch (e) { return {'success': false}; }
   }
 }

@@ -20,12 +20,11 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // Base URL: Chrome Web vs Android Emulator
   String get _baseUrl {
     if (kIsWeb) {
       return 'http://localhost:5000/api/auth/register';
     } else {
-      return 'http://192.168.10.7:5000/api/auth/register'; // Computer's Local IP for Physical Device
+      return 'http://192.168.10.9:5000/api/auth/register'; 
     }
   }
 
@@ -44,6 +43,8 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
+      print("SIGNUP: Sending request to $_baseUrl");
+      
       final response = await http.post(
         Uri.parse(_baseUrl),
         headers: {'Content-Type': 'application/json'},
@@ -52,50 +53,42 @@ class _SignupScreenState extends State<SignupScreen> {
           'email': email,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 15)); // 15 seconds timeout
+
+      print("SIGNUP: Status Code -> ${response.statusCode}");
+      print("SIGNUP: Response Body -> ${response.body}");
 
       final data = jsonDecode(response.body);
 
       if (!mounted) return;
 
-      if (response.statusCode == 201) {
-        // 1. Token ko local storage me save karein
+      if (response.statusCode == 201 || response.statusCode == 200) {
         if (data['token'] != null) {
           await AuthService.saveToken(data['token']);
+          print("SIGNUP: Token saved successfully");
         }
 
         if (!mounted) return;
 
-        // 2. Success Message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? "Registration Successful!"),
-            backgroundColor: Colors.green,
-          ),
+          SnackBar(content: Text(data['message'] ?? "Registration Successful!"), backgroundColor: Colors.green),
         );
 
-        // 3. Home Screen Par Navigation
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
+          (route) => false,
         );
       } else {
-        // Backend Error Response
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? "Signup failed"),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(data['message'] ?? "Signup failed"), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      print("SIGNUP ERROR: $e");
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Network Error: ${e.toString()}"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: ${e.toString()}"), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -131,110 +124,17 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 30),
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle),
                   child: const Icon(Icons.person_add, size: 50, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  "Create Account",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Join us and get started",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: TextField(
-                    controller: _nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: "Full Name",
-                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                      prefixIcon: Icon(Icons.person_outline, color: Colors.white.withValues(alpha: 0.7)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  ),
-                ),
+                const Text("Create Account", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 40),
+                _inputField(_nameController, "Full Name", Icons.person_outline),
                 const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: TextField(
-                    controller: _emailController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                      prefixIcon: Icon(Icons.email_outlined, color: Colors.white.withValues(alpha: 0.7)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                ),
+                _inputField(_emailController, "Email", Icons.email_outlined),
                 const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: TextField(
-                    controller: _passwordController,
-                    style: const TextStyle(color: Colors.white),
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: "Password",
-                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                      prefixIcon: Icon(Icons.lock_outlined, color: Colors.white.withValues(alpha: 0.7)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.white.withValues(alpha: 0.7),
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  ),
-                ),
+                _inputField(_passwordController, "Password", Icons.lock_outlined, isPassword: true),
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
@@ -246,49 +146,47 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF1A1A2E),
-                      elevation: 8,
-                      shadowColor: Colors.white.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
+                    child: const Text("Sign Up", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "Already have an account? ",
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                    ),
+                    Text("Already have an account? ", style: TextStyle(color: Colors.white.withOpacity(0.7))),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        "Login",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
+                      onTap: () => Navigator.pop(context),
+                      child: const Text("Login", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 30),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _inputField(TextEditingController controller, String label, IconData icon, {bool isPassword = false}) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword && _obscurePassword,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+          prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.7)),
+          suffixIcon: isPassword ? IconButton(
+            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white.withOpacity(0.7)),
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          ) : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
