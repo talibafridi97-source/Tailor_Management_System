@@ -72,23 +72,15 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         ];
       case "Shirt & Pant":
         return [
-          // Shirt Part
           {"label": "Shirt Length", "icon": Icons.straighten},
           {"label": "Shoulder", "icon": Icons.settings_ethernet},
           {"label": "Chest", "icon": Icons.accessibility_new},
-          {"label": "Sleeve Length", "icon": Icons.height},
-          {"label": "Collar", "icon": Icons.watch},
-          // Pant Part
           {"label": "Pant Length", "icon": Icons.straighten},
           {"label": "Pant Waist", "icon": Icons.circle},
           {"label": "Hip", "icon": Icons.circle_outlined},
-          {"label": "Pant Bottom", "icon": Icons.circle_outlined},
         ];
       default:
-        return [
-          {"label": "Length", "icon": Icons.straighten},
-          {"label": "Shoulder", "icon": Icons.settings_ethernet},
-        ];
+        return [{"label": "Length", "icon": Icons.straighten}];
     }
   }
 
@@ -118,120 +110,109 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     String t(String key) => AppTranslations.getText(key, locale);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF16213E)]),
-          ),
-        ),
-        title: Text("${widget.garment} Nap", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _clientCard(),
-                  _datesCard(),
-                  _urgentToggle(t),
-                  _paymentCard(),
-                  const SizedBox(height: 10),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text("Measurements", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: measurements.length,
-                    itemBuilder: (context, index) {
-                      final m = measurements[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _measurementInput(m),
-                      );
-                    },
-                  ),
-                  _materialsSection(),
-                ],
-              ),
+            gradient: LinearGradient(
+              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
             ),
           ),
-          _saveAction(),
+        ),
+        title: Text("${widget.garment} Nap", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader("Customer Details", Icons.person_pin_outlined),
+                _clientCard(),
+                const SizedBox(height: 20),
+                
+                _buildSectionHeader("Order Timeline", Icons.calendar_month_outlined),
+                _datesCard(),
+                const SizedBox(height: 10),
+                _urgentToggle(t),
+                const SizedBox(height: 20),
+
+                _buildSectionHeader("Payment Information", Icons.account_balance_wallet_outlined),
+                _paymentCard(),
+                const SizedBox(height: 20),
+
+                _buildSectionHeader("Body Measurements", Icons.straighten),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white, borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+                  ),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 2.2
+                    ),
+                    itemCount: measurements.length,
+                    itemBuilder: (context, index) => _measurementInput(measurements[index]),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                _buildSectionHeader("Material Provided", Icons.inventory_2_outlined),
+                _materialsSection(),
+              ],
+            ),
+          ),
+          Positioned(bottom: 0, left: 0, right: 0, child: _saveAction()),
         ],
       ),
     );
   }
 
-  Widget _urgentToggle(String Function(String) t) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-      child: SwitchListTile(
-        title: Text(t('mark_urgent'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
-        secondary: const Icon(Icons.push_pin, color: Colors.redAccent),
-        value: _isUrgent,
-        activeColor: Colors.redAccent,
-        onChanged: (val) => setState(() => _isUrgent = val),
-      ),
-    );
-  }
-
-  Widget _paymentCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Row(
         children: [
-          Expanded(child: TextField(controller: _totalPriceController, keyboardType: TextInputType.number, decoration: _inputDeco("Total Bill", Icons.payments))),
-          const SizedBox(width: 12),
-          Expanded(child: TextField(controller: _advanceController, keyboardType: TextInputType.number, decoration: _inputDeco("Advance", Icons.account_balance_wallet))),
+          Icon(icon, size: 20, color: const Color(0xFF1A1A2E)),
+          const SizedBox(width: 8),
+          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1A1A2E))),
         ],
-      ),
-    );
-  }
-
-  Widget _materialsSection() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-      child: Column(
-        children: _materialControllers.keys.map((k) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: TextFormField(
-            controller: _materialControllers[k],
-            decoration: _inputDeco(k, Icons.texture),
-          ),
-        )).toList(),
       ),
     );
   }
 
   Widget _clientCard() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+      ),
       child: Row(
         children: [
-          const CircleAvatar(child: Icon(Icons.person)),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(widget.garment, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFF0056D2).withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.person, color: Color(0xFF0056D2), size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.clientName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(widget.phone, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              ],
+            ),
           ),
         ],
       ),
@@ -240,27 +221,72 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
 
   Widget _datesCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+      ),
       child: Column(
         children: [
-          _dateTile("Order Date", _orderDate, true),
-          const Divider(),
-          _dateTile("Delivery Date", _deliveryDate, false),
+          _dateTile("Order Date", _orderDate, true, Colors.orange),
+          const Divider(height: 24),
+          _dateTile("Delivery Date", _deliveryDate, false, Colors.green),
         ],
       ),
     );
   }
 
-  Widget _dateTile(String label, DateTime date, bool isOrder) {
-    return ListTile(
-      title: Text(label),
-      trailing: Text("${date.day}/${date.month}/${date.year}", style: const TextStyle(fontWeight: FontWeight.bold)),
+  Widget _dateTile(String label, DateTime date, bool isOrder, Color color) {
+    return InkWell(
       onTap: () async {
         final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2035));
         if (picked != null) setState(() => isOrder ? _orderDate = picked : _deliveryDate = picked);
       },
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Text("${date.day}/${date.month}/${date.year}", style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _urgentToggle(String Function(String) t) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _isUrgent ? Colors.red.shade50 : Colors.white, 
+        borderRadius: BorderRadius.circular(20),
+        border: _isUrgent ? Border.all(color: Colors.redAccent, width: 1.5) : null,
+      ),
+      child: SwitchListTile(
+        title: Text(t('urgent'), style: TextStyle(fontWeight: FontWeight.bold, color: _isUrgent ? Colors.red : Colors.black87)),
+        secondary: Icon(Icons.push_pin, color: _isUrgent ? Colors.red : Colors.grey),
+        value: _isUrgent,
+        activeColor: Colors.red,
+        onChanged: (val) => setState(() => _isUrgent = val),
+      ),
+    );
+  }
+
+  Widget _paymentCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _modernField(_totalPriceController, "Total Bill", Icons.payments, Colors.blue)),
+          const SizedBox(width: 12),
+          Expanded(child: _modernField(_advanceController, "Advance", Icons.account_balance_wallet, Colors.green)),
+        ],
+      ),
     );
   }
 
@@ -268,19 +294,68 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     return TextField(
       controller: _controllers[m["label"]],
       keyboardType: TextInputType.number,
-      decoration: _inputDeco(m["label"], m["icon"]),
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      decoration: InputDecoration(
+        labelText: m["label"],
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+        prefixIcon: Icon(m["icon"], size: 16, color: const Color(0xFF0056D2)),
+        filled: true, fillColor: const Color(0xFFF8F9FA),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        contentPadding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  Widget _materialsSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+      ),
+      child: Column(
+        children: _materialControllers.keys.map((k) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _modernField(_materialControllers[k]!, k, Icons.texture, Colors.blueGrey),
+        )).toList(),
+      ),
+    );
+  }
+
+  Widget _modernField(TextEditingController controller, String label, IconData icon, Color color) {
+    return TextField(
+      controller: controller,
+      keyboardType: label.contains('Bill') || label.contains('Advance') ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: color, size: 20),
+        filled: true, fillColor: const Color(0xFFF8F9FA),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      ),
     );
   }
 
   Widget _saveAction() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]
+      ),
       child: SizedBox(
-        width: double.infinity, height: 55,
+        width: double.infinity, height: 58,
         child: ElevatedButton(
           onPressed: _isLoading ? null : _onSave,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Save Order", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0056D2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            elevation: 8, shadowColor: const Color(0xFF0056D2).withOpacity(0.4)
+          ),
+          child: _isLoading 
+            ? const CircularProgressIndicator(color: Colors.white) 
+            : const Text("Confirm & Save Order", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -295,47 +370,23 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       double due = total - adv;
 
       Map<String, String> mData = {};
-      _controllers.forEach((k, v) => mData[k] = v.text);
+      _controllers.forEach((k, v) { if(v.text.isNotEmpty) mData[k] = v.text; });
 
       List<String> materials = [];
-      _materialControllers.forEach((k, v) {
-        if (v.text.isNotEmpty) materials.add("$k: ${v.text}");
-      });
+      _materialControllers.forEach((k, v) { if (v.text.isNotEmpty) materials.add("$k: ${v.text}"); });
 
-      // Call Providers
-      final customerProvider = context.read<CustomerProvider>();
-      final orderProvider = context.read<OrderProvider>();
-
-      final custSaved = await customerProvider.addCustomer(
-        name: widget.clientName,
-        phone: widget.phone,
-        address: widget.address,
-        measurements: mData,
-      );
-
-      final orderSaved = await orderProvider.addOrder(
-        clientName: widget.clientName,
-        phone: widget.phone,
-        garment: widget.garment,
-        measurements: mData,
-        materials: materials,
-        totalBill: total,
-        advancePayment: adv,
-        dueAmount: due,
-        orderDate: _orderDate,
-        deliveryDate: _deliveryDate,
-        isPinned: _isUrgent,
+      final success = await context.read<OrderProvider>().addOrder(
+        clientName: widget.clientName, phone: widget.phone, garment: widget.garment,
+        measurements: mData, materials: materials, totalBill: total,
+        advancePayment: adv, dueAmount: due, orderDate: _orderDate,
+        deliveryDate: _deliveryDate, isPinned: _isUrgent,
       );
 
       if (mounted) {
-        if (custSaved && orderSaved) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Saved Successfully!"), backgroundColor: Colors.green));
-          Navigator.popUntil(context, (route) => route.isFirst);
+        if (success) {
+          _showSuccessDialog();
         } else {
-          String errorDetail = orderProvider.errorMessage ?? "Server connection failed";
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: $errorDetail"), backgroundColor: Colors.red, duration: const Duration(seconds: 4))
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to save order"), backgroundColor: Colors.red));
         }
       }
     } catch (e) {
@@ -345,11 +396,36 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     }
   }
 
-  InputDecoration _inputDeco(String l, IconData i) {
-    return InputDecoration(
-      labelText: l, prefixIcon: Icon(i),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-      filled: true, fillColor: Colors.white,
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 20),
+            const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+            const SizedBox(height: 20),
+            const Text("Order Saved!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text("Order for ${widget.clientName} has been successfully saved to MongoDB.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                child: const Text("Awesome!", style: TextStyle(color: Colors.white)),
+              ),
+            )
+          ],
+        ),
+      ),
     );
   }
 }

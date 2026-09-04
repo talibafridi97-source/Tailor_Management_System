@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
-// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
+import 'package:provider/provider.dart';
+import '../controllers/order_provider.dart';
+import '../controllers/settings_controller.dart';
+import '../core/app_translations.dart';
 import 'order_detail_screen.dart';
 
 class DuePaymentScreen extends StatefulWidget {
@@ -15,6 +17,14 @@ class _DuePaymentScreenState extends State<DuePaymentScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<OrderProvider>().fetchOrders();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -22,6 +32,10 @@ class _DuePaymentScreenState extends State<DuePaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsController>(context);
+    final locale = settings.locale.languageCode;
+    String t(String key) => AppTranslations.getText(key, locale);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -30,93 +44,79 @@ class _DuePaymentScreenState extends State<DuePaymentScreen> {
             gradient: LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF16213E)]),
           ),
         ),
-        title: const Text("Baqaya Payments", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: Text(t('due_payment'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          _buildHeader(),
-          Expanded(child: _buildDueList("current_user_id")),
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: const Color(0xFF1A1A2E),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "Search customer...",
+                prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                filled: true,
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          Expanded(child: _buildDueList()),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: "Search customer name...",
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-          prefixIcon: const Icon(Icons.search, color: Colors.white70),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.1),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-        ),
-      ),
-    );
-  }
+  Widget _buildDueList() {
+    return Consumer<OrderProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) return const Center(child: CircularProgressIndicator());
 
-  Widget _buildDueList(String uid) {
-    // TODO: Replace with MongoDB due payment fetch
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.check_circle_outline, size: 80, color: Colors.green.shade100),
-          const SizedBox(height: 16),
-          const Text("TODO: Connect MongoDB Due List", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.bold)),
-        ],
-      ),
+        // Filter only orders with dueAmount > 0
+        var dueOrders = provider.orders.where((o) => 
+          (double.tryParse(o['dueAmount']?.toString() ?? '0') ?? 0.0) > 0
+        ).toList();
+
+        if (_searchQuery.isNotEmpty) {
+          dueOrders = dueOrders.where((o) => 
+            (o['clientName'] ?? '').toString().toLowerCase().contains(_searchQuery)
+          ).toList();
+        }
+
+        if (dueOrders.isEmpty) {
+          return const Center(child: Text("No pending payments found", style: TextStyle(color: Colors.grey)));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: dueOrders.length,
+          itemBuilder: (context, index) {
+            final data = dueOrders[index];
+            return _dueCard(data['_id'] ?? data['id'] ?? '', data);
+          },
+        );
+      },
     );
   }
 
   Widget _dueCard(String id, Map<String, dynamic> data) {
-    double due = (data['dueAmount'] ?? 0).toDouble();
+    double due = double.tryParse(data['dueAmount']?.toString() ?? '0') ?? 0.0;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: ListTile(
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: data, orderId: id))),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          radius: 25,
           backgroundColor: Colors.red.withOpacity(0.1),
           child: const Icon(Icons.person, color: Colors.redAccent),
         ),
-        title: Text(data['clientName'] ?? 'Customer', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(data['garment'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text("Bill: ${data['totalBill']} | Paid: ${data['advancePayment']}", style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Text("Baqaya", style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
-            Text("Rs. $due", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.red, fontSize: 15)),
-          ],
-        ),
+        title: Text(data['clientName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(data['garment'] ?? ''),
+        trailing: Text("Rs. ${due.toInt()}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 16)),
       ),
     );
   }

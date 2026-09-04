@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
-// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/auth_service.dart';
+import '../controllers/settings_controller.dart';
+import '../core/app_translations.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -12,11 +16,44 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  final List<String> _categories = ["All", "Fabric", "Buttons", "Thread", "Lace", "Bukram", "Other"];
   String _selectedCategory = "All";
+  List<dynamic> _inventory = [];
+  bool _isLoading = false;
+
+  final String _baseUrl = 'http://192.168.10.7:5000/api/inventory';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInventory();
+  }
+
+  Future<void> _fetchInventory() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.get(
+        Uri.parse(_baseUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        setState(() => _inventory = jsonDecode(response.body));
+      }
+    } catch (e) {
+      print("Inventory Error: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsController>(context);
+    final locale = settings.locale.languageCode;
+    String t(String key) => AppTranslations.getText(key, locale);
+
+    final List<String> categories = ["All", "Fabric", "Buttons", "Thread", "Lace", "Bukram", "Other"];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -25,74 +62,68 @@ class _InventoryScreenState extends State<InventoryScreen> {
             gradient: LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF0F3460)]),
           ),
         ),
-        title: const Text("Stock Inventory", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
+        title: Text(t('inventory'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(onPressed: _fetchInventory, icon: const Icon(Icons.refresh, color: Colors.white)),
+        ],
       ),
       body: Column(
         children: [
-          _buildHeader(),
-          _buildCategoryFilter(),
-          Expanded(child: _buildInventoryList("current_user_id")),
+          _buildHeader(t),
+          _buildCategoryFilter(categories, t, locale),
+          Expanded(child: _buildInventoryList(t)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showItemSheet(context),
+        onPressed: () => _showItemSheet(context, t),
         backgroundColor: const Color(0xFF0056D2),
-        label: const Text("Add New Stock", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text(t('add_stock'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(String Function(String) t) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-      ),
+      padding: const EdgeInsets.all(16),
+      color: const Color(0xFF1A1A2E),
       child: TextField(
         controller: _searchController,
         onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: "Search fabric, buttons, threads...",
+          hintText: t('search_stock'),
           hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
           prefixIcon: const Icon(Icons.search, color: Colors.white70),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.1),
+          filled: true, fillColor: Colors.white10,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
         ),
       ),
     );
   }
 
-  Widget _buildCategoryFilter() {
+  Widget _buildCategoryFilter(List<String> cats, String Function(String) t, String locale) {
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(vertical: 15),
+      height: 60,
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
+        itemCount: cats.length,
         itemBuilder: (context, index) {
-          bool isSelected = _selectedCategory == _categories[index];
+          String cat = cats[index];
+          String display = (cat == "All") ? t('all') : t(cat.toLowerCase());
+          bool isSelected = _selectedCategory == cat;
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = _categories[index]),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+            onTap: () => setState(() => _selectedCategory = cat),
+            child: Container(
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFF0056D2) : Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: isSelected ? [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Center(
-                child: Text(_categories[index], 
-                  style: TextStyle(color: isSelected ? Colors.white : Colors.black54, fontWeight: FontWeight.bold, fontSize: 13)),
-              ),
+              child: Center(child: Text(display, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold))),
             ),
           );
         },
@@ -100,167 +131,44 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildInventoryList(String uid) {
-    // TODO: Replace with MongoDB inventory fetch
-    return const Center(child: Text("TODO: Connect MongoDB Inventory List", style: TextStyle(color: Colors.grey)));
+  Widget _buildInventoryList(String Function(String) t) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+
+    var items = _inventory.where((item) {
+      final name = (item['name'] ?? '').toString().toLowerCase();
+      final cat = item['category'] ?? '';
+      return name.contains(_searchQuery) && (_selectedCategory == "All" || cat == _selectedCategory);
+    }).toList();
+
+    if (items.isEmpty) return const Center(child: Text("Stock is empty"));
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final data = items[index];
+        return _inventoryCard(data, t);
+      },
+    );
   }
 
-  Widget _inventoryListTile(String id, Map<String, dynamic> data) {
-    int qty = int.tryParse(data['quantity'].toString()) ?? 0;
-    bool isLow = qty < 5;
-    Color catColor = _getCatColor(data['category']);
-
+  Widget _inventoryCard(Map<String, dynamic> data, String Function(String) t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: ListTile(
-        onTap: () => _showDetailsDialog(id, data),
-        contentPadding: const EdgeInsets.all(12),
-        leading: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: catColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Icon(_getCatIcon(data['category']), size: 30, color: catColor),
-        ),
-        title: Text(data['name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(data['category'] ?? 'Other', style: TextStyle(color: catColor, fontWeight: FontWeight.w600, fontSize: 12)),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Text("$qty ${data['unit'] ?? 'pcs'}", 
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isLow ? Colors.red : Colors.blueGrey.shade800)),
-                if (isLow) ...[
-                  const SizedBox(width: 8),
-                  _lowStockBadge(),
-                ]
-              ],
-            ),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (val) {
-            if (val == 'edit') _showItemSheet(context, id: id, existingData: data);
-            if (val == 'delete') _deleteItem(id);
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text("Edit")])),
-            const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 18), SizedBox(width: 8), Text("Delete", style: TextStyle(color: Colors.red))])),
-          ],
-        ),
+        title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(t((data['category'] ?? 'other').toString().toLowerCase())),
+        trailing: Text("${data['quantity']} ${data['unit']}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
       ),
     );
   }
 
-  Widget _lowStockBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: const Text("LOW", style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  void _deleteItem(String id) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Item?"),
-        content: const Text("Are you sure you want to remove this item from stock?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-          TextButton(onPressed: () {
-            // TODO: Implement MongoDB Delete logic
-            Navigator.pop(ctx);
-          }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-  }
-
-  void _showDetailsDialog(String id, Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(_getCatIcon(data['category']), color: _getCatColor(data['category'])),
-            const SizedBox(width: 10),
-            const Text("Stock Details"),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _detailRow("Name", data['name']),
-            _detailRow("Category", data['category']),
-            _detailRow("Quantity", "${data['quantity']} ${data['unit']}"),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showItemSheet(context, id: id, existingData: data);
-            }, 
-            child: const Text("Update")
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String l, String? v) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: RichText(text: TextSpan(
-        style: const TextStyle(color: Colors.black, fontSize: 14),
-        children: [
-          TextSpan(text: "$l: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-          TextSpan(text: v ?? '-'),
-        ]
-      )),
-    );
-  }
-
-  Color _getCatColor(String? c) {
-    switch (c) {
-      case "Fabric": return Colors.deepPurple;
-      case "Buttons": return Colors.orange;
-      case "Thread": return Colors.blue;
-      case "Lace": return Colors.pink;
-      case "Bukram": return Colors.teal;
-      default: return Colors.blueGrey;
-    }
-  }
-
-  IconData _getCatIcon(String? c) {
-    switch (c) {
-      case "Fabric": return Icons.texture;
-      case "Buttons": return Icons.radio_button_checked;
-      case "Thread": return Icons.line_weight;
-      case "Lace": return Icons.border_style;
-      case "Bukram": return Icons.layers;
-      default: return Icons.category_outlined;
-    }
-  }
-
-  void _showItemSheet(BuildContext context, {String? id, Map<String, dynamic>? existingData}) {
-    final name = TextEditingController(text: existingData?['name']);
-    final qty = TextEditingController(text: existingData?['quantity']?.toString());
-    String cat = existingData?['category'] ?? "Fabric";
-    String unit = existingData?['unit'] ?? "Meters";
+  void _showItemSheet(BuildContext context, String Function(String) t) {
+    final name = TextEditingController();
+    final qty = TextEditingController();
+    String cat = "Fabric";
+    String unit = "Meters";
 
     showModalBottomSheet(
       context: context,
@@ -271,48 +179,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(id == null ? "Add New Stock" : "Update Stock", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 25),
-            TextField(controller: name, decoration: _inputDeco("Item Name (e.g. White Silk)", Icons.shopping_bag)),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                Expanded(child: TextField(controller: qty, keyboardType: TextInputType.number, decoration: _inputDeco("Quantity", Icons.numbers))),
-                const SizedBox(width: 15),
-                Expanded(child: DropdownButtonFormField<String>(value: unit, items: ["Meters", "Yards", "Pieces", "Rolls"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => unit = v!, decoration: _inputDeco("Unit", Icons.straighten))),
-              ],
-            ),
-            const SizedBox(height: 15),
-            DropdownButtonFormField<String>(
-              value: cat, 
-              items: _categories.where((c) => c != "All").map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), 
-              onChanged: (v) => cat = v!, 
-              decoration: _inputDeco("Category", Icons.category)
-            ),
+            Text(t('add_stock'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            TextField(controller: name, decoration: InputDecoration(labelText: "Item Name", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
+            const SizedBox(height: 12),
+            TextField(controller: qty, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: "Quantity", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
             const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+            ElevatedButton(
               onPressed: () async {
-                if (name.text.isEmpty || qty.text.isEmpty) return;
-                // TODO: Implement MongoDB Save/Update logic
-                if (mounted) Navigator.pop(ctx);
+                // TODO: POST to /api/inventory
+                Navigator.pop(ctx);
               },
-              child: Text(id == null ? "Add to Inventory" : "Update Item", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            )),
+              child: const Text("Save Item"),
+            ),
             const SizedBox(height: 30),
           ],
         ),
       ),
-    );
-  }
-
-  InputDecoration _inputDeco(String l, IconData i) {
-    return InputDecoration(
-      labelText: l,
-      prefixIcon: Icon(i, size: 20, color: const Color(0xFF0056D2)),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-      filled: true,
-      fillColor: Colors.grey.shade50,
     );
   }
 }
