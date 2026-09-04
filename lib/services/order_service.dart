@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class OrderService {
-  // Local IP updated to 192.168.10.9
-  static const String baseUrl = 'http://192.168.10.9:5000/api/orders';
+  // Local IP updated to 192.168.10.7
+  static const String baseUrl = 'http://192.168.10.7:5000/api/orders';
 
   static Future<Map<String, dynamic>> createOrder({
     required String clientName,

@@ -4,7 +4,7 @@ import 'auth_service.dart';
 
 class CustomerService {
   // Physical Device (Samsung A52) ke liye Local Network IP
-  static const String baseUrl = 'http://192.168.10.9:5000/api/customers';
+  static const String baseUrl = 'http://192.168.10.7:5000/api/customers';
 
   // 1. Add New Customer (with Measurements)
   static Future<Map<String, dynamic>> addCustomer({

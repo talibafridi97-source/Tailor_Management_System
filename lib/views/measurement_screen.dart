@@ -70,8 +70,25 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           {"label": "Collar", "icon": Icons.watch},
           {"label": "Arm Hole", "icon": Icons.adjust},
         ];
+      case "Shirt & Pant":
+        return [
+          // Shirt Part
+          {"label": "Shirt Length", "icon": Icons.straighten},
+          {"label": "Shoulder", "icon": Icons.settings_ethernet},
+          {"label": "Chest", "icon": Icons.accessibility_new},
+          {"label": "Sleeve Length", "icon": Icons.height},
+          {"label": "Collar", "icon": Icons.watch},
+          // Pant Part
+          {"label": "Pant Length", "icon": Icons.straighten},
+          {"label": "Pant Waist", "icon": Icons.circle},
+          {"label": "Hip", "icon": Icons.circle_outlined},
+          {"label": "Pant Bottom", "icon": Icons.circle_outlined},
+        ];
       default:
-        return [{"label": "Length", "icon": Icons.straighten}];
+        return [
+          {"label": "Length", "icon": Icons.straighten},
+          {"label": "Shoulder", "icon": Icons.settings_ethernet},
+        ];
     }
   }
 
