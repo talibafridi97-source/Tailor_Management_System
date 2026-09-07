@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class OrderService {
-  // Local IP updated to 192.168.10.20
   static const String baseUrl = 'http://192.168.10.20:5000/api/orders';
 
   static Future<Map<String, dynamic>> createOrder({
@@ -18,6 +17,7 @@ class OrderService {
     required DateTime orderDate,
     required DateTime deliveryDate,
     required bool isPinned,
+    String? karigarName,
   }) async {
     try {
       final token = await AuthService.getToken();
@@ -40,11 +40,11 @@ class OrderService {
           'orderDate': orderDate.toIso8601String(),
           'deliveryDate': deliveryDate.toIso8601String(),
           'isPinned': isPinned,
+          'karigarName': karigarName,
           'status': 'pending', 
         }),
       );
 
-      print("CREATE ORDER STATUS: ${response.statusCode}");
       final dynamic data = _safeDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -67,7 +67,6 @@ class OrderService {
         return {'success': false, 'message': 'Please Logout and Login again (Token Missing)'};
       }
 
-      print("DEBUG: Fetching from -> $baseUrl");
       final response = await http.get(
         Uri.parse(baseUrl),
         headers: {
@@ -76,15 +75,11 @@ class OrderService {
         },
       );
 
-      print("DEBUG: Status Code -> ${response.statusCode}");
-
-      // Agar HTML milay (yaani 404 ya crash)
       if (response.body.toLowerCase().contains('<!doctype html>') || 
           response.body.toLowerCase().contains('<html>')) {
-        print("CRITICAL: Backend returned HTML. Check if GET route exists.");
         return {
           'success': false, 
-          'message': 'Backend Error (${response.statusCode}): Received HTML. \n\nCheck if GET route is defined in Node.js'
+          'message': 'Backend Error (${response.statusCode}): Received HTML.'
         };
       }
 
@@ -120,7 +115,6 @@ class OrderService {
     }
   }
 
-  // Baqi methods (Update/Delete) wese hi rahenge
   static Future<Map<String, dynamic>> updateOrderStatus(String orderId, String status) async {
     try {
       final token = await AuthService.getToken();

@@ -19,7 +19,6 @@ class CustomerProvider extends ChangeNotifier {
       final result = await CustomerService.getCustomersVerbose();
       if (result['success']) {
         _customers = result['data'] ?? [];
-        print("PROVIDER: Loaded ${_customers.length} customers");
       } else {
         _errorMessage = result['message'];
       }
@@ -47,7 +46,16 @@ class CustomerProvider extends ChangeNotifier {
     );
 
     if (result['success']) {
-      await fetchCustomers(); // Refresh list
+      await fetchCustomers();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> deleteCustomer(String id) async {
+    final success = await CustomerService.deleteCustomer(id);
+    if (success) {
+      await fetchCustomers();
       return true;
     }
     return false;

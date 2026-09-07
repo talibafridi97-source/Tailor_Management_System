@@ -57,12 +57,6 @@ class CustomerService {
         },
       );
 
-      print("DEBUG: CUSTOMERS Status -> ${response.statusCode}");
-      
-      if (response.body.toLowerCase().contains('<!doctype html>')) {
-        return {'success': false, 'message': 'Backend Error: Received HTML'};
-      }
-
       if (response.statusCode == 200) {
         final dynamic decoded = jsonDecode(response.body);
         List<dynamic> customers = [];
@@ -78,7 +72,6 @@ class CustomerService {
         return {'success': false, 'message': 'Server Error ${response.statusCode}'};
       }
     } catch (e) {
-      print("GET CUSTOMERS EXCEPTION: $e");
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -86,5 +79,21 @@ class CustomerService {
   static Future<List<dynamic>> getCustomers() async {
     final res = await getCustomersVerbose();
     return res['success'] ? res['data'] : [];
+  }
+
+  // 3. Delete Customer
+  static Future<bool> deleteCustomer(String id) async {
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 }

@@ -1,5 +1,3 @@
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
-
 class OrderModel {
   final String? id;
   final String userId;
@@ -9,6 +7,7 @@ class OrderModel {
   final String status;
   final double dueAmount;
   final bool isPinned;
+  final String? karigarName;
   final DateTime? timestamp;
   final Map<String, dynamic>? measurements;
 
@@ -21,6 +20,7 @@ class OrderModel {
     required this.status,
     required this.dueAmount,
     this.isPinned = false,
+    this.karigarName,
     this.timestamp,
     this.measurements,
   });
@@ -35,7 +35,7 @@ class OrderModel {
       status: data['status'] ?? 'pending',
       dueAmount: double.tryParse(data['dueAmount'].toString()) ?? 0.0,
       isPinned: data['isPinned'] ?? false,
-      // TODO: Replace with MongoDB logic
+      karigarName: data['karigarName'],
       timestamp: data['timestamp'] != null ? DateTime.tryParse(data['timestamp'].toString()) : null,
       measurements: data['measurements'],
     );
@@ -50,7 +50,7 @@ class OrderModel {
       'status': status,
       'dueAmount': dueAmount,
       'isPinned': isPinned,
-      // TODO: Replace with MongoDB server timestamp
+      'karigarName': karigarName,
       'timestamp': timestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
       'measurements': measurements,
     };
