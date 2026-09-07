@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../controllers/order_provider.dart';
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
+import '../core/date_formatter.dart';
 import 'order_detail_screen.dart';
 
 class DuePaymentScreen extends StatefulWidget {
@@ -115,7 +116,7 @@ class _DuePaymentScreenState extends State<DuePaymentScreen> {
           child: const Icon(Icons.person, color: Colors.redAccent),
         ),
         title: Text(data['clientName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(data['garment'] ?? ''),
+        subtitle: Text("${data['garment'] ?? ''} • ${DateFormatter.format(data['deliveryDate'])}"),
         trailing: Text("Rs. ${due.toInt()}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 16)),
       ),
     );

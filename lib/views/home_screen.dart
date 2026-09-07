@@ -8,6 +8,7 @@ import 'inventory_screen.dart';
 import 'due_payment_screen.dart';
 import 'settings_screen.dart';
 import '../core/app_translations.dart';
+import '../core/date_formatter.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/order_provider.dart';
 
@@ -365,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Icon(Icons.person, color: _statusColor),
             ),
             title: Text(data['clientName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(data['garment'] ?? ''),
+            subtitle: Text("${data['garment'] ?? ''} • ${DateFormatter.format(data['deliveryDate'])}"),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,

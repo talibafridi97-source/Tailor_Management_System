@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/order_provider.dart';
+import '../core/date_formatter.dart';
+import '../services/whatsapp_service.dart';
+import '../services/pdf_service.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -17,12 +20,6 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  String _formatDate(dynamic ts) {
-    if (ts == null) return '-';
-    // TODO: Replace with MongoDB date parsing
-    return ts.toString();
-  }
-
   Color get _statusColor {
     switch (widget.order['status']) {
       case 'complete':
@@ -37,11 +34,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final measurements = widget.order['measurements'] as Map<String, dynamic>? ?? {};
-    final materials = widget.order['materials'] as Map<String, dynamic>? ?? {};
+    final materials = widget.order['materials'] as List<dynamic>? ?? [];
     final orderDate = widget.order['orderDate'];
     final deliveryDate = widget.order['deliveryDate'];
 
-    // Due Payment Calculations
     double totalBill = (widget.order['totalBill'] ?? 0).toDouble();
     double advance = (widget.order['advancePayment'] ?? 0).toDouble();
     double due = (widget.order['dueAmount'] ?? 0).toDouble();
@@ -69,6 +65,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+            onPressed: () => _generatePdf(),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -82,13 +84,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _buildPaymentCard(totalBill, advance, due),
             const SizedBox(height: 16),
 
-            // 3. Materials Section
-            if (materials.isNotEmpty && materials.values.any((v) => v.toString().isNotEmpty))
-              _buildSection("Material Details", Icons.inventory_2_outlined, const Color(0xFF0056D2), materials, "details"),
+            // 3. Sharing & Print Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _shareToWhatsapp,
+                    icon: const Icon(Icons.share, color: Colors.white),
+                    label: const Text("WhatsApp", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _generatePdf,
+                    icon: const Icon(Icons.print, color: Colors.white),
+                    label: const Text("Print Parchi", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
 
-            // 4. Due Payment Section (New)
-            _buildDuePaymentSection(due),
+            // 4. Materials Section
+            if (materials.isNotEmpty)
+              _buildMaterialsSection(materials),
             const SizedBox(height: 16),
 
             // 5. Measurements Section
@@ -110,13 +132,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             
             const SizedBox(height: 20),
 
-            // Delete Button
             _actionBtn("Delete Order Record", Colors.redAccent.withOpacity(0.8), Icons.delete_forever, _deleteOrder),
             
             const SizedBox(height: 30),
           ],
         ),
       ),
+    );
+  }
+
+  void _shareToWhatsapp() {
+    WhatsappService.shareReceipt(
+      phone: widget.order['phone'] ?? '',
+      customerName: widget.order['clientName'] ?? '',
+      garment: widget.order['garment'] ?? '',
+      shopName: "TailorBook Shop", // This should come from settings
+      totalBill: (widget.order['totalBill'] ?? 0).toDouble(),
+      advance: (widget.order['advancePayment'] ?? 0).toDouble(),
+      due: (widget.order['dueAmount'] ?? 0).toDouble(),
+      deliveryDate: widget.order['deliveryDate'],
+    );
+  }
+
+  void _generatePdf() {
+    PdfService.generateAndPrintReceipt(
+      order: widget.order,
+      shopName: "TailorBook Shop",
+      shopAddress: "Main Market, Street 7",
+      shopPhone: "0300-1234567",
     );
   }
 
@@ -179,9 +222,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           const SizedBox(height: 12),
           _infoRow(Icons.location_on_outlined, "Address", widget.order['address'] ?? '', const Color(0xFF4ECDC4)),
           const SizedBox(height: 12),
-          _infoRow(Icons.calendar_today, "Order Date", _formatDate(orderDate), const Color(0xFFFF8C00)),
+          _infoRow(Icons.calendar_today, "Order Date", DateFormatter.format(orderDate), const Color(0xFFFF8C00)),
           const SizedBox(height: 12),
-          _infoRow(Icons.event, "Delivery Date", _formatDate(deliveryDate), const Color(0xFF00C853)),
+          _infoRow(Icons.event, "Delivery Date", DateFormatter.format(deliveryDate), const Color(0xFF00C853)),
         ],
       ),
     );
@@ -206,10 +249,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ],
           ),
           const Divider(height: 30),
-          _payRow("Total Bill", "Rs. $total", Colors.black87),
-          _payRow("Advance Paid", "Rs. $adv", Colors.blue),
+          _payRow("Total Bill", "Rs. ${total.toInt()}", Colors.black87),
+          _payRow("Advance Paid", "Rs. ${adv.toInt()}", Colors.blue),
           const Divider(),
-          _payRow("Remaining Due", "Rs. $due", due > 0 ? Colors.red : Colors.green, isBold: true),
+          _payRow("Remaining Due", "Rs. ${due.toInt()}", due > 0 ? Colors.red : Colors.green, isBold: true),
         ],
       ),
     );
@@ -261,7 +304,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 final success = await context.read<OrderProvider>().collectPayment(widget.orderId, total);
                 if (mounted && success) {
                   Navigator.pop(ctx);
-                  Navigator.pop(context); // Go back to refresh list
+                  Navigator.pop(context); 
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Updated Successfully!"), backgroundColor: Colors.green));
                 }
               } catch (e) {
@@ -309,85 +352,62 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildDuePaymentSection(double due) {
-    return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Text("Payment Details", style: TextStyle(fontWeight: FontWeight.bold)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _payRow("Total Bill", "Rs. ${widget.order['totalBill']}", Colors.black87),
-                _payRow("Advance Paid", "Rs. ${widget.order['advancePayment']}", Colors.blue),
-                const Divider(),
-                _payRow("Remaining Balance", "Rs. $due", due > 0 ? Colors.red : Colors.green, isBold: true),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
-              if (due > 0)
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _collectDuePayment();
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text("Collect Payment", style: TextStyle(color: Colors.white)),
-                ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _iconBox(Icons.account_balance_wallet, Colors.redAccent),
+              const SizedBox(width: 12),
+              const Text("Due Payment", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 6))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _iconBox(Icons.account_balance_wallet, Colors.redAccent),
-                const SizedBox(width: 12),
-                const Text("Due Payment", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                const Icon(Icons.info_outline, size: 20, color: Colors.grey),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  due > 0 ? "Baqaya (Remaining)" : "Payment Clear",
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-                ),
-                Text(
-                  "Rs. $due",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: due > 0 ? Colors.red : Colors.green,
-                  ),
-                ),
-              ],
-            ),
-            if (due > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  "Customer: ${widget.order['clientName']}",
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontStyle: FontStyle.italic),
-                ),
-              ),
-          ],
-        ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(due > 0 ? "Baqaya (Remaining)" : "Payment Clear", style: TextStyle(color: Colors.grey.shade700, fontSize: 14)),
+              Text("Rs. ${due.toInt()}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: due > 0 ? Colors.red : Colors.green)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMaterialsSection(List<dynamic> materials) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _iconBox(Icons.inventory_2_outlined, Colors.blue),
+              const SizedBox(width: 12),
+              const Text("Materials Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...materials.map((m) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text("- $m", style: const TextStyle(fontWeight: FontWeight.w500)),
+          )).toList(),
+        ],
       ),
     );
   }

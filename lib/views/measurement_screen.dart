@@ -4,6 +4,7 @@ import '../controllers/settings_controller.dart';
 import '../controllers/order_provider.dart';
 import '../controllers/customer_provider.dart';
 import '../core/app_translations.dart';
+import '../services/whatsapp_service.dart';
 
 class MeasurementScreen extends StatefulWidget {
   final String clientName;
@@ -412,6 +413,33 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             const SizedBox(height: 10),
             Text("Order for ${widget.clientName} has been successfully saved to MongoDB.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
             const SizedBox(height: 30),
+            
+            // Share Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                       WhatsappService.shareReceipt(
+                         phone: widget.phone,
+                         customerName: widget.clientName,
+                         garment: widget.garment,
+                         shopName: "TailorBook Shop",
+                         totalBill: double.tryParse(_totalPriceController.text) ?? 0.0,
+                         advance: double.tryParse(_advanceController.text) ?? 0.0,
+                         due: (double.tryParse(_totalPriceController.text) ?? 0.0) - (double.tryParse(_advanceController.text) ?? 0.0),
+                         deliveryDate: _deliveryDate,
+                       );
+                    },
+                    icon: const Icon(Icons.share, color: Colors.white, size: 18),
+                    label: const Text("WhatsApp", style: TextStyle(color: Colors.white, fontSize: 12)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), padding: const EdgeInsets.symmetric(vertical: 12)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

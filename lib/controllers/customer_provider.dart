@@ -4,18 +4,27 @@ import '../services/customer_service.dart';
 class CustomerProvider extends ChangeNotifier {
   List<dynamic> _customers = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   List<dynamic> get customers => _customers;
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   Future<void> fetchCustomers() async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      _customers = await CustomerService.getCustomers();
+      final result = await CustomerService.getCustomersVerbose();
+      if (result['success']) {
+        _customers = result['data'] ?? [];
+        print("PROVIDER: Loaded ${_customers.length} customers");
+      } else {
+        _errorMessage = result['message'];
+      }
     } catch (e) {
-      debugPrint("Error fetching customers: $e");
+      _errorMessage = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();

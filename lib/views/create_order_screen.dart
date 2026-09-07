@@ -100,14 +100,20 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      maxLength: label.contains("Phone") ? 11 : null,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: color),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
         filled: true,
         fillColor: Colors.white,
+        counterText: "", // Hides the character counter
       ),
-      validator: (v) => v!.isEmpty ? "Required" : null,
+      validator: (v) {
+        if (v!.isEmpty) return "Required";
+        if (label.contains("Phone") && v.length < 11) return "Enter full 11 digits";
+        return null;
+      },
     );
   }
 

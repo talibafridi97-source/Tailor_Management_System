@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class CustomerService {
-  // Physical Device (Samsung A52) ke liye Local Network IP
-  static const String baseUrl = 'http://192.168.10.5:5000/api/customers';
+  static const String baseUrl = 'http://192.168.10.20:5000/api/customers';
 
   // 1. Add New Customer (with Measurements)
   static Future<Map<String, dynamic>> addCustomer({
@@ -33,16 +32,22 @@ class CustomerService {
       );
 
       final data = jsonDecode(response.body);
-      return {'success': response.statusCode == 201, 'data': data};
+      return {
+        'success': response.statusCode == 201 || response.statusCode == 200, 
+        'data': data
+      };
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
   }
 
-  // 2. Fetch All Customers
-  static Future<List<dynamic>> getCustomers() async {
+  // 2. Fetch All Customers with Verbose Logging
+  static Future<Map<String, dynamic>> getCustomersVerbose() async {
     try {
       final token = await AuthService.getToken();
+      if (token == null || token.isEmpty) {
+        return {'success': false, 'message': 'Token Missing'};
+      }
 
       final response = await http.get(
         Uri.parse(baseUrl),
@@ -52,12 +57,34 @@ class CustomerService {
         },
       );
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+      print("DEBUG: CUSTOMERS Status -> ${response.statusCode}");
+      
+      if (response.body.toLowerCase().contains('<!doctype html>')) {
+        return {'success': false, 'message': 'Backend Error: Received HTML'};
       }
-      return [];
+
+      if (response.statusCode == 200) {
+        final dynamic decoded = jsonDecode(response.body);
+        List<dynamic> customers = [];
+        
+        if (decoded is List) {
+          customers = decoded;
+        } else if (decoded is Map) {
+          customers = decoded['data'] ?? decoded['customers'] ?? [];
+        }
+        
+        return {'success': true, 'data': customers};
+      } else {
+        return {'success': false, 'message': 'Server Error ${response.statusCode}'};
+      }
     } catch (e) {
-      return [];
+      print("GET CUSTOMERS EXCEPTION: $e");
+      return {'success': false, 'message': e.toString()};
     }
+  }
+
+  static Future<List<dynamic>> getCustomers() async {
+    final res = await getCustomersVerbose();
+    return res['success'] ? res['data'] : [];
   }
 }
