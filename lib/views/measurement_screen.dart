@@ -403,7 +403,19 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       List<String> materials = [];
       _materialControllers.forEach((k, v) { if (v.text.isNotEmpty) materials.add("$k: ${v.text}"); });
 
-      final success = await context.read<OrderProvider>().addOrder(
+      // Call Both Providers to save Customer AND Order
+      final customerProvider = context.read<CustomerProvider>();
+      final orderProvider = context.read<OrderProvider>();
+
+      final custSaved = await customerProvider.addCustomer(
+        name: widget.clientName,
+        phone: widget.phone,
+        address: widget.address,
+        gender: widget.gender,
+        measurements: mData,
+      );
+
+      final orderSaved = await orderProvider.addOrder(
         clientName: widget.clientName, phone: widget.phone, garment: widget.garment,
         measurements: mData, materials: materials, totalBill: total,
         advancePayment: adv, dueAmount: due, orderDate: _orderDate,
@@ -412,10 +424,12 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       );
 
       if (mounted) {
-        if (success) {
+        if (custSaved && orderSaved) {
           _showSuccessDialog();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to save order"), backgroundColor: Colors.red));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to save: ${orderProvider.errorMessage ?? 'Server error'}"), backgroundColor: Colors.red)
+          );
         }
       }
     } catch (e) {

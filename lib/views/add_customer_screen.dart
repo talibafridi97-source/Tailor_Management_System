@@ -44,7 +44,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
             address: _addressController.text.trim(),
             gender: _selectedGender!,
             garment: _selectedGarment!,
-            // karigarName will be passed or handled in MeasurementScreen
+            // We pass null for now, but MeasurementScreen will allow choosing a Karigar per order
           ),
         ),
       );
@@ -71,6 +71,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildSectionHeader("Personal Info", Icons.person_outline),
               _buildField(_nameController, "Full Name", Icons.person, const Color(0xFF6C63FF)),
               const SizedBox(height: 16),
               _buildField(_phoneController, "Phone Number", Icons.phone, const Color(0xFFFF6B6B), keyboardType: TextInputType.phone),
@@ -78,8 +79,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
               _buildField(_addressController, "Address", Icons.location_on, const Color(0xFF4ECDC4), maxLines: 2),
               
               const SizedBox(height: 24),
-              const Text("Select Gender", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+              _buildSectionHeader("Gender", Icons.wc),
               Row(
                 children: [
                   _genderOption("Male", Icons.male, const Color(0xFF6C63FF)),
@@ -89,15 +89,28 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
               ),
 
               const SizedBox(height: 24),
-              const Text("Select Garment (Suit Type)", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+              _buildSectionHeader("Select Suit Type", Icons.checkroom),
               ..._garments.map((g) => _garmentOption(g)),
 
               const SizedBox(height: 30),
               _nextButton(),
+              const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF1A1A2E)),
+          const SizedBox(width: 8),
+          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
