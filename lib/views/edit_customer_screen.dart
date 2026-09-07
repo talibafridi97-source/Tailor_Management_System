@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
+import 'package:provider/provider.dart';
+import '../controllers/customer_provider.dart';
 
 class EditCustomerScreen extends StatefulWidget {
   final String docId;
@@ -43,7 +44,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement MongoDB Customer Update
+      // TODO: Implement MongoDB Customer Update Service call
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Updated successfully!"), backgroundColor: Colors.green));
         Navigator.pop(context);
@@ -53,6 +54,34 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Delete Customer?"),
+        content: Text("Are you sure you want to delete '${widget.customerData['name']}'?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await context.read<CustomerProvider>().deleteCustomer(widget.docId);
+              if (mounted) {
+                Navigator.pop(ctx);
+                if (success) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Customer Removed"), backgroundColor: Colors.redAccent));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -67,6 +96,12 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
         ),
         title: const Text("Customer Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.white),
+            onPressed: _confirmDelete,
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

@@ -40,8 +40,11 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
 
   final TextEditingController _totalPriceController = TextEditingController();
   final TextEditingController _advanceController = TextEditingController();
+  String? _selectedKarigar;
   bool _isUrgent = false;
   bool _isLoading = false;
+
+  final List<String> _karigars = ["Self", "Karigar 1", "Karigar 2", "Karigar 3", "Karigar 4", "Karigar 5"];
 
   DateTime _orderDate = DateTime.now();
   DateTime _deliveryDate = DateTime.now().add(const Duration(days: 7));
@@ -141,6 +144,10 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                 _datesCard(),
                 const SizedBox(height: 10),
                 _urgentToggle(t),
+                const SizedBox(height: 20),
+
+                _buildSectionHeader("Assign to Karigar / Worker", Icons.work_outline),
+                _karigarSelector(),
                 const SizedBox(height: 20),
 
                 _buildSectionHeader("Payment Information", Icons.account_balance_wallet_outlined),
@@ -337,6 +344,26 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     );
   }
 
+  Widget _karigarSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedKarigar,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: "Select Worker",
+          prefixIcon: Icon(Icons.people, color: Colors.blueAccent),
+        ),
+        items: _karigars.map((k) => DropdownMenuItem(value: k, child: Text(k))).toList(),
+        onChanged: (val) => setState(() => _selectedKarigar = val),
+      ),
+    );
+  }
+
   Widget _saveAction() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -381,6 +408,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         measurements: mData, materials: materials, totalBill: total,
         advancePayment: adv, dueAmount: due, orderDate: _orderDate,
         deliveryDate: _deliveryDate, isPinned: _isUrgent,
+        karigarName: _selectedKarigar,
       );
 
       if (mounted) {
