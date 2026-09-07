@@ -15,6 +15,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   final _addressController = TextEditingController();
   String? _selectedGender;
   String? _selectedGarment;
+  String? _selectedKarigar;
+
+  final List<String> _karigars = ["Self", "Karigar 1", "Karigar 2", "Karigar 3", "Karigar 4", "Karigar 5"];
 
   final List<Map<String, dynamic>> _garments = [
     {"name": "Shalwar Kameez", "icon": Icons.accessibility_new, "color": const Color(0xFF6C63FF)},
@@ -41,6 +44,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
             address: _addressController.text.trim(),
             gender: _selectedGender!,
             garment: _selectedGarment!,
+            // karigarName will be passed or handled in MeasurementScreen
           ),
         ),
       );
@@ -72,8 +76,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
               _buildField(_phoneController, "Phone Number", Icons.phone, const Color(0xFFFF6B6B), keyboardType: TextInputType.phone),
               const SizedBox(height: 16),
               _buildField(_addressController, "Address", Icons.location_on, const Color(0xFF4ECDC4), maxLines: 2),
+              
               const SizedBox(height: 24),
-              const Text("Gender", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text("Select Gender", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -82,10 +87,12 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                   _genderOption("Female", Icons.female, const Color(0xFFFF6B6B)),
                 ],
               ),
+
               const SizedBox(height: 24),
-              const Text("Select Garment", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text("Select Garment (Suit Type)", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               ..._garments.map((g) => _garmentOption(g)),
+
               const SizedBox(height: 30),
               _nextButton(),
             ],
@@ -100,14 +107,20 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      maxLength: label.contains("Phone") ? 11 : null,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: color),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
         filled: true,
         fillColor: Colors.white,
+        counterText: "",
       ),
-      validator: (v) => v!.isEmpty ? "Required" : null,
+      validator: (v) {
+        if (v!.isEmpty) return "Required";
+        if (label.contains("Phone") && v.length < 11) return "Enter 11 digits";
+        return null;
+      },
     );
   }
 
@@ -145,7 +158,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
       child: ElevatedButton(
         onPressed: _onNext,
         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-        child: const Text("Next: Take Nap (Measurement)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: const Text("Next: Take Measurements", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }

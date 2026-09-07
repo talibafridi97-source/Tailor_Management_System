@@ -366,7 +366,14 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Icon(Icons.person, color: _statusColor),
             ),
             title: Text(data['clientName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("${data['garment'] ?? ''} • ${DateFormatter.format(data['deliveryDate'])}"),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("${data['garment'] ?? ''} • ${DateFormatter.format(data['deliveryDate'])}"),
+                if (data['karigarName'] != null && data['karigarName'].toString().isNotEmpty)
+                  Text("Worker: ${data['karigarName']}", style: TextStyle(color: Colors.blue.shade700, fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,

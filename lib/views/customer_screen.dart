@@ -215,12 +215,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
               final success = await context.read<CustomerProvider>().deleteCustomer(id);
               if (context.mounted) {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success ? "Customer Deleted" : "Failed to delete"),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Customer Deleted Successfully"), backgroundColor: Colors.green),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Delete Failed. Check Backend API."), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),

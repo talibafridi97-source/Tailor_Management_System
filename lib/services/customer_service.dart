@@ -41,7 +41,7 @@ class CustomerService {
     }
   }
 
-  // 2. Fetch All Customers with Verbose Logging
+  // 2. Fetch All Customers with Super Robust Handling
   static Future<Map<String, dynamic>> getCustomersVerbose() async {
     try {
       final token = await AuthService.getToken();
@@ -57,6 +57,12 @@ class CustomerService {
         },
       );
 
+      print("DEBUG: CUSTOMER API Status -> ${response.statusCode}");
+      
+      if (response.body.toLowerCase().contains('<!doctype html>')) {
+        return {'success': false, 'message': 'Route not found on Backend (404)'};
+      }
+
       if (response.statusCode == 200) {
         final dynamic decoded = jsonDecode(response.body);
         List<dynamic> customers = [];
@@ -64,15 +70,21 @@ class CustomerService {
         if (decoded is List) {
           customers = decoded;
         } else if (decoded is Map) {
-          customers = decoded['data'] ?? decoded['customers'] ?? [];
+          // Check all possible keys tailors might use
+          customers = decoded['data'] ?? 
+                      decoded['customers'] ?? 
+                      decoded['allCustomers'] ?? 
+                      decoded['list'] ?? [];
         }
         
+        print("DEBUG: Successfully parsed ${customers.length} customers");
         return {'success': true, 'data': customers};
       } else {
-        return {'success': false, 'message': 'Server Error ${response.statusCode}'};
+        return {'success': false, 'message': 'Server Error: ${response.statusCode}'};
       }
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
+      print("GET CUSTOMERS EXCEPTION: $e");
+      return {'success': false, 'message': 'Connection Error. Is Server running?'};
     }
   }
 
@@ -81,7 +93,7 @@ class CustomerService {
     return res['success'] ? res['data'] : [];
   }
 
-  // 3. Delete Customer
+  // 3. Delete Customer (Improved status code check)
   static Future<bool> deleteCustomer(String id) async {
     try {
       final token = await AuthService.getToken();
@@ -90,9 +102,13 @@ class CustomerService {
         headers: {
           'Authorization': 'Bearer $token',
         },
-      );
-      return response.statusCode == 200;
+      ).timeout(const Duration(seconds: 10));
+
+      print("DEBUG: DELETE Status -> ${response.statusCode}");
+      // Backend might return 200, 204 or 201
+      return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
+      print("DELETE EXCEPTION: $e");
       return false;
     }
   }
