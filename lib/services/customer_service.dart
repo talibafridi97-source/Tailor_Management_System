@@ -5,7 +5,7 @@ import 'auth_service.dart';
 class CustomerService {
   static const String baseUrl = 'http://192.168.10.20:5000/api/customers';
 
-  // 1. Add New Customer (with Measurements)
+  // 1. Add New Customer
   static Future<Map<String, dynamic>> addCustomer({
     required String name,
     required String phone,
@@ -15,7 +15,6 @@ class CustomerService {
   }) async {
     try {
       final token = await AuthService.getToken();
-
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {
@@ -41,7 +40,7 @@ class CustomerService {
     }
   }
 
-  // 2. Fetch All Customers with Super Robust Handling
+  // 2. Fetch All Customers
   static Future<Map<String, dynamic>> getCustomersVerbose() async {
     try {
       final token = await AuthService.getToken();
@@ -55,13 +54,9 @@ class CustomerService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
-      print("DEBUG: CUSTOMER API Status -> ${response.statusCode}");
-      
-      if (response.body.toLowerCase().contains('<!doctype html>')) {
-        return {'success': false, 'message': 'Route not found on Backend (404)'};
-      }
+      print("CUSTOMER_API: Status ${response.statusCode}");
 
       if (response.statusCode == 200) {
         final dynamic decoded = jsonDecode(response.body);
@@ -70,45 +65,37 @@ class CustomerService {
         if (decoded is List) {
           customers = decoded;
         } else if (decoded is Map) {
-          // Check all possible keys tailors might use
-          customers = decoded['data'] ?? 
-                      decoded['customers'] ?? 
-                      decoded['allCustomers'] ?? 
-                      decoded['list'] ?? [];
+          customers = decoded['data'] ?? decoded['customers'] ?? [];
         }
         
-        print("DEBUG: Successfully parsed ${customers.length} customers");
         return {'success': true, 'data': customers};
       } else {
         return {'success': false, 'message': 'Server Error: ${response.statusCode}'};
       }
     } catch (e) {
-      print("GET CUSTOMERS EXCEPTION: $e");
+      print("CUSTOMER_API_ERROR: $e");
       return {'success': false, 'message': 'Connection Error. Is Server running?'};
     }
   }
 
-  static Future<List<dynamic>> getCustomers() async {
-    final res = await getCustomersVerbose();
-    return res['success'] ? res['data'] : [];
-  }
-
-  // 3. Delete Customer (Improved status code check)
+  // 3. Delete Customer
   static Future<bool> deleteCustomer(String id) async {
     try {
       final token = await AuthService.getToken();
       final response = await http.delete(
         Uri.parse('$baseUrl/$id'),
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 10));
 
-      print("DEBUG: DELETE Status -> ${response.statusCode}");
-      // Backend might return 200, 204 or 201
+      print("DELETE_API: ID $id -> Status ${response.statusCode}");
+      
+      // We accept 200 (OK) or 204 (No Content) as success
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print("DELETE EXCEPTION: $e");
+      print("DELETE_API_ERROR: $e");
       return false;
     }
   }
