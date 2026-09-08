@@ -26,24 +26,35 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
-        flexibleSpace: Container(decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF16213E)]))),
-        title: const Text("Hisab Kitab (Profit/Loss)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF16213E)]),
+          ),
+        ),
+        title: const Text("Profit & Loss Statement", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [
           _buildProfitDashboard(),
           const Padding(
             padding: EdgeInsets.only(left: 20, top: 20, bottom: 10),
-            child: Align(alignment: Alignment.centerLeft, child: Text("Recent Expenses", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+            child: Align(
+              alignment: Alignment.centerLeft, 
+              child: Text("Expense Records", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))
+            ),
           ),
           Expanded(child: _buildExpenseList()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showExpenseDialog(context),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Colors.blueAccent,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add Kharcha", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text("Add Expense", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -51,8 +62,28 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   Widget _buildProfitDashboard() {
     return Consumer2<OrderProvider, ExpenseProvider>(
       builder: (context, orderProv, expProv, child) {
-        double totalRevenue = orderProv.orders.fold(0.0, (sum, o) => sum + (double.tryParse(o['totalBill']?.toString() ?? '0') ?? 0.0));
+        if (orderProv.isLoading || expProv.isLoading) {
+          return Container(
+            height: 200,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A2E),
+              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+            ),
+            child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+          );
+        }
+
+        // Logic: Total Revenue comes from Order total bills
+        double totalRevenue = 0;
+        if (orderProv.orders.isNotEmpty) {
+          totalRevenue = orderProv.orders.fold(0.0, (sum, o) => sum + (double.tryParse(o['totalBill']?.toString() ?? '0') ?? 0.0));
+        }
+
+        // Logic: Total Expenses comes from Expense records
         double totalExpense = expProv.totalExpense;
+        
+        // Final Net Profit calculation
         double netProfit = totalRevenue - totalExpense;
 
         return Container(
@@ -66,23 +97,25 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _statItem("Total Kamai", "Rs. ${totalRevenue.toInt()}", Colors.greenAccent),
-                  _statItem("Total Kharcha", "Rs. ${totalExpense.toInt()}", Colors.redAccent),
+                  _statItem("Total Revenue", "Rs. ${totalRevenue.toInt()}", Colors.greenAccent),
+                  _statItem("Total Expenses", "Rs. ${totalExpense.toInt()}", Colors.redAccent),
                 ],
               ),
               const SizedBox(height: 25),
               const Divider(color: Colors.white10),
               const SizedBox(height: 15),
-              const Text("ASLI MUNAFA (NET PROFIT)", style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5)),
+              const Text("NET PROFIT / LOSS", style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5)),
               const SizedBox(height: 5),
               Text(
                 "Rs. ${netProfit.toInt()}",
                 style: TextStyle(
-                  color: netProfit >= 0 ? Colors.blueAccent : Colors.red,
+                  color: netProfit > 0 ? Colors.blueAccent : (netProfit < 0 ? Colors.redAccent : Colors.white),
                   fontSize: 36,
                   fontWeight: FontWeight.w900,
                 ),
               ),
+              if (netProfit < 0) 
+                const Text("(Loss Detected)", style: TextStyle(color: Colors.redAccent, fontSize: 10)),
             ],
           ),
         );
@@ -105,7 +138,18 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     return Consumer<ExpenseProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) return const Center(child: CircularProgressIndicator());
-        if (provider.expenses.isEmpty) return const Center(child: Text("Abhi tak koi kharcha add nahi kiya."));
+        if (provider.expenses.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.receipt_long_outlined, size: 60, color: Colors.grey.shade300),
+                const SizedBox(height: 10),
+                const Text("No expense records found.", style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          );
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -150,8 +194,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Expense?"),
-        content: Text("Are you sure you want to delete '$name'?"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Delete Record?"),
+        content: Text("Are you sure you want to remove '$name' from expenses?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
@@ -160,7 +205,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               if (mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text("Delete"),
           ),
         ],
       ),
@@ -175,13 +220,13 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(id == null ? "Dukan ka Kharcha Dalein" : "Kharcha Update Karain"),
+        title: Text(id == null ? "Add Business Expense" : "Update Expense Record"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: titleController, decoration: const InputDecoration(labelText: "Kharcha kis cheez ka hai?")),
+            TextField(controller: titleController, decoration: const InputDecoration(labelText: "Expense Title (e.g. Shop Rent)")),
             const SizedBox(height: 10),
-            TextField(controller: amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Rakam (Rs.)")),
+            TextField(controller: amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Amount (Rs.)")),
           ],
         ),
         actions: [
@@ -198,7 +243,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               if (mounted && success) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E), foregroundColor: Colors.white),
-            child: Text(id == null ? "Save Karain" : "Update Karain"),
+            child: Text(id == null ? "Save" : "Update"),
           ),
         ],
       ),
