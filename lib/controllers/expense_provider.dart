@@ -23,4 +23,19 @@ class ExpenseProvider extends ChangeNotifier {
     if (success) await fetchExpenses();
     return success;
   }
+
+  Future<bool> updateExpense(String id, String title, double amount) async {
+    final success = await ExpenseService.updateExpense(id, title, amount);
+    if (success) await fetchExpenses();
+    return success;
+  }
+
+  Future<bool> deleteExpense(String id) async {
+    final success = await ExpenseService.deleteExpense(id);
+    if (success) {
+      _expenses.removeWhere((e) => (e['_id'] ?? e['id']) == id);
+      notifyListeners();
+    }
+    return success;
+  }
 }

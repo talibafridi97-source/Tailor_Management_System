@@ -6,6 +6,8 @@ import 'dashboard_screen.dart';
 import 'customer_screen.dart';
 import 'inventory_screen.dart';
 import 'due_payment_screen.dart';
+import 'expense_screen.dart';
+import 'worker_stats_screen.dart';
 import 'settings_screen.dart';
 import 'tailor_book.dart';
 import '../core/app_translations.dart';
@@ -131,10 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DuePaymentScreen()));
             }),
             _drawerItem(Icons.money_off, "Kharcha & Munafa", Colors.pinkAccent, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => ExpenseScreen()));
             }),
             _drawerItem(Icons.engineering, "Karigar Workload", Colors.blueAccent, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkerStatsScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => WorkerStatsScreen()));
             }),
             _drawerItem(Icons.people, t('customers'), Colors.greenAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerScreen()));

@@ -25,4 +25,27 @@ class ExpenseService {
       return response.statusCode == 201;
     } catch (e) { return false; }
   }
+
+  static Future<bool> updateExpense(String id, String title, double amount) async {
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.put(
+        Uri.parse('$baseUrl/$id'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({'title': title, 'amount': amount}),
+      );
+      return response.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> deleteExpense(String id) async {
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } catch (e) { return false; }
+  }
 }
