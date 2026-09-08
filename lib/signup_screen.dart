@@ -24,7 +24,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (kIsWeb) {
       return 'http://localhost:5000/api/auth/register';
     } else {
-      return 'http://192.168.10.10:5000/api/auth/register'; 
+      return 'http://192.168.10.24:5000/api/auth/register'; 
     }
   }
 

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class CustomerService {
-  static const String baseUrl = 'http://192.168.10.10:5000/api/customers';
+  static const String baseUrl = 'http://192.168.10.24:5000/api/customers';
 
   // 1. Add New Customer
   static Future<Map<String, dynamic>> addCustomer({
@@ -56,8 +56,6 @@ class CustomerService {
         },
       ).timeout(const Duration(seconds: 15));
 
-      print("CUSTOMER_API: Status ${response.statusCode}");
-
       if (response.statusCode == 200) {
         final dynamic decoded = jsonDecode(response.body);
         List<dynamic> customers = [];
@@ -73,29 +71,42 @@ class CustomerService {
         return {'success': false, 'message': 'Server Error: ${response.statusCode}'};
       }
     } catch (e) {
-      print("CUSTOMER_API_ERROR: $e");
-      return {'success': false, 'message': 'Connection Error. Is Server running?'};
+      return {'success': false, 'message': 'Connection Error'};
     }
   }
 
-  // 3. Delete Customer
+  // 3. Update Customer (New)
+  static Future<Map<String, dynamic>> updateCustomer(String id, Map<String, dynamic> data) async {
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.put(
+        Uri.parse('$baseUrl/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      return {'success': response.statusCode == 200, 'data': jsonDecode(response.body)};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // 4. Delete Customer
   static Future<bool> deleteCustomer(String id) async {
     try {
       final token = await AuthService.getToken();
       final response = await http.delete(
         Uri.parse('$baseUrl/$id'),
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 10));
 
-      print("DELETE_API: ID $id -> Status ${response.statusCode}");
-      
-      // We accept 200 (OK) or 204 (No Content) as success
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print("DELETE_API_ERROR: $e");
       return false;
     }
   }

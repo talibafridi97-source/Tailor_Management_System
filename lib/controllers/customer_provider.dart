@@ -19,7 +19,6 @@ class CustomerProvider extends ChangeNotifier {
       final result = await CustomerService.getCustomersVerbose();
       if (result['success']) {
         _customers = result['data'] ?? [];
-        print("PROVIDER: Loaded ${_customers.length} customers");
       } else {
         _errorMessage = result['message'];
       }
@@ -47,7 +46,16 @@ class CustomerProvider extends ChangeNotifier {
     );
 
     if (result['success']) {
-      await fetchCustomers(); // Reload all
+      await fetchCustomers();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> updateCustomer(String id, Map<String, dynamic> data) async {
+    final result = await CustomerService.updateCustomer(id, data);
+    if (result['success']) {
+      await fetchCustomers(); // Refresh list
       return true;
     }
     return false;
@@ -56,7 +64,6 @@ class CustomerProvider extends ChangeNotifier {
   Future<bool> deleteCustomer(String id) async {
     final success = await CustomerService.deleteCustomer(id);
     if (success) {
-      // Sahi respond milne par list se foran remove karo (Local Sync)
       _customers.removeWhere((c) => (c['_id'] ?? c['id']) == id);
       notifyListeners();
       return true;

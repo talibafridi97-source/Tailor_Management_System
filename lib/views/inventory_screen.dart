@@ -20,7 +20,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   List<dynamic> _inventory = [];
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://192.168.10.10:5000/api/inventory';
+  final String _baseUrl = 'http://192.168.10.24:5000/api/inventory';
 
   @override
   void initState() {

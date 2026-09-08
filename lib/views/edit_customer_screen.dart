@@ -44,10 +44,23 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement MongoDB Customer Update Service call
+      final success = await context.read<CustomerProvider>().updateCustomer(
+        widget.docId, 
+        {
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(),
+          'gender': _selectedGender,
+        }
+      );
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Updated successfully!"), backgroundColor: Colors.green));
-        Navigator.pop(context);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Customer updated successfully!"), backgroundColor: Colors.green));
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Update failed. Check backend."), backgroundColor: Colors.red));
+        }
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
@@ -94,7 +107,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
             gradient: LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF16213E)]),
           ),
         ),
-        title: const Text("Customer Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text("Edit Customer", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white), onPressed: () => Navigator.pop(context)),
         actions: [
           IconButton(
@@ -125,41 +138,6 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              if (_measurements.isNotEmpty) ...[
-                const Text("Saved Measurements (Nap)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 2.5,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                    ),
-                    itemCount: _measurements.length,
-                    itemBuilder: (context, index) {
-                      String key = _measurements.keys.elementAt(index);
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(key, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                            Text("${_measurements[key]} inch", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
               const SizedBox(height: 30),
               _updateButton(),
             ],
