@@ -130,6 +130,12 @@ class _HomeScreenState extends State<HomeScreen> {
             _drawerItem(Icons.payment, t('due_payment'), Colors.redAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DuePaymentScreen()));
             }),
+            _drawerItem(Icons.money_off, "Kharcha & Munafa", Colors.pinkAccent, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseScreen()));
+            }),
+            _drawerItem(Icons.engineering, "Karigar Workload", Colors.blueAccent, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkerStatsScreen()));
+            }),
             _drawerItem(Icons.people, t('customers'), Colors.greenAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerScreen()));
             }),
