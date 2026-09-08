@@ -80,15 +80,22 @@ class OrderProvider extends ChangeNotifier {
   }
 
   Future<bool> updateKarigar(String orderId, String karigarName) async {
-    final result = await OrderService.updateKarigar(orderId, karigarName);
-    if (result['success']) {
-      // Fast Local Update: Update the name in the current list without re-fetching
-      final index = _orders.indexWhere((o) => (o['_id'] ?? o['id']) == orderId);
-      if (index != -1) {
-        _orders[index]['karigarName'] = karigarName;
-        notifyListeners();
+    try {
+      final result = await OrderService.updateKarigar(orderId, karigarName);
+      if (result['success']) {
+        // Safe Local Update: Create a modifiable copy of the list and map
+        final index = _orders.indexWhere((o) => (o['_id'] ?? o['id']) == orderId);
+        if (index != -1) {
+          // Make a modifiable copy of the map to prevent "Unsupported operation: Cannot modify unmodifiable map"
+          Map<String, dynamic> modifiableOrder = Map<String, dynamic>.from(_orders[index]);
+          modifiableOrder['karigarName'] = karigarName;
+          _orders[index] = modifiableOrder;
+          notifyListeners();
+        }
+        return true;
       }
-      return true;
+    } catch (e) {
+      print("Local Update Error: $e");
     }
     return false;
   }
