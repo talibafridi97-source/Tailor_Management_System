@@ -20,6 +20,8 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  final List<String> _karigars = ["Self", "Karigar 1", "Karigar 2", "Karigar 3", "Karigar 4", "Karigar 5"];
+
   Color get _statusColor {
     switch (widget.order['status']) {
       case 'complete':
@@ -122,6 +124,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (due > 0)
               _actionBtn("Collect Balance (Rs. $due)", Colors.blueGrey, Icons.payments, _collectDuePayment),
             
+            const SizedBox(height: 12),
+
+            _actionBtn("Assign / Change Worker", Colors.blueAccent, Icons.person_add_alt, _showWorkerSelection),
+
             const SizedBox(height: 12),
 
             if (widget.order['status'] == 'pending')
@@ -326,6 +332,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void _updateStatus(String status) async {
     final success = await context.read<OrderProvider>().updateStatus(widget.orderId, status);
     if (mounted && success) Navigator.pop(context);
+  }
+
+  void _showWorkerSelection() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Select Karigar / Worker", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 15),
+            ..._karigars.map((k) => ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.person, size: 20)),
+              title: Text(k),
+              onTap: () async {
+                final success = await context.read<OrderProvider>().updateKarigar(widget.orderId, k);
+                if (mounted) {
+                  Navigator.pop(ctx);
+                  if (success) {
+                    Navigator.pop(context); // Go back to refresh list
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Assigned to $k"), backgroundColor: Colors.green));
+                  }
+                }
+              },
+            )).toList(),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _iconBox(IconData icon, Color color) {

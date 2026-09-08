@@ -117,6 +117,21 @@ class OrderService {
     } catch (e) { return {'success': false}; }
   }
 
+  static Future<Map<String, dynamic>> updateKarigar(String orderId, String karigarName) async {
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.put(
+        Uri.parse('$baseUrl/$orderId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'karigarName': karigarName}),
+      );
+      return {'success': response.statusCode == 200};
+    } catch (e) { return {'success': false}; }
+  }
+
   static Future<Map<String, dynamic>> updatePayment(String orderId, double totalBill) async {
     try {
       final token = await AuthService.getToken();

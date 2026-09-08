@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _drawerItem(Icons.analytics_outlined, "Profit & Loss", Colors.pinkAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => ExpenseScreen()));
             }),
-            _drawerItem(Icons.engineering, "Karigar Workload", Colors.blueAccent, () {
+            _drawerItem(Icons.engineering_outlined, "Staff Workload", Colors.blueAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => WorkerStatsScreen()));
             }),
             _drawerItem(Icons.people, t('customers'), Colors.greenAccent, () {

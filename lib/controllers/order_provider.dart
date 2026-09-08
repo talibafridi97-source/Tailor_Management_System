@@ -79,6 +79,15 @@ class OrderProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> updateKarigar(String orderId, String karigarName) async {
+    final result = await OrderService.updateKarigar(orderId, karigarName);
+    if (result['success']) {
+      await fetchOrders();
+      return true;
+    }
+    return false;
+  }
+
   Future<bool> collectPayment(String orderId, double totalBill) async {
     final result = await OrderService.updatePayment(orderId, totalBill);
     if (result['success']) {
