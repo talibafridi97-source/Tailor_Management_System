@@ -7,8 +7,10 @@ import 'customer_screen.dart';
 import 'inventory_screen.dart';
 import 'due_payment_screen.dart';
 import 'settings_screen.dart';
+import 'tailor_book.dart';
 import '../core/app_translations.dart';
 import '../core/date_formatter.dart';
+import '../services/auth_service.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/order_provider.dart';
 
@@ -76,7 +78,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirm != true) return;
-    // TODO: Implement actual logout
+    
+    await AuthService.removeToken();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const TailorBookScreen()),
+        (route) => false,
+      );
+    }
   }
 
   Widget _buildDrawer(BuildContext context) {
@@ -449,14 +459,19 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
+              Navigator.pop(ctx); // Close dialog first
               final success = await provider.deleteOrder(id);
               if (mounted) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Deleted")));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? "Order Deleted Successfully" : "Delete Failed: ${provider.errorMessage ?? 'Server Error'}"),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text("Delete"),
           ),
         ],
       ),

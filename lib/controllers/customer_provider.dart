@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/customer_service.dart';
+import 'order_provider.dart';
 
 class CustomerProvider extends ChangeNotifier {
   List<dynamic> _customers = [];
@@ -30,9 +31,11 @@ class CustomerProvider extends ChangeNotifier {
     }
   }
 
+  // Method to add and sync
   Future<bool> addCustomer({
     required String name,
     required String phone,
+    required OrderProvider orderProv, // Syncing with order provider
     String address = '',
     String gender = 'Male',
     required Map<String, dynamic> measurements,
@@ -47,24 +50,27 @@ class CustomerProvider extends ChangeNotifier {
 
     if (result['success']) {
       await fetchCustomers();
+      await orderProv.fetchOrders(); // Sync home screen
       return true;
     }
     return false;
   }
 
-  Future<bool> updateCustomer(String id, Map<String, dynamic> data) async {
+  Future<bool> updateCustomer(String id, Map<String, dynamic> data, OrderProvider orderProv) async {
     final result = await CustomerService.updateCustomer(id, data);
     if (result['success']) {
-      await fetchCustomers(); // Refresh list
+      await fetchCustomers();
+      await orderProv.fetchOrders(); // Sync home screen
       return true;
     }
     return false;
   }
 
-  Future<bool> deleteCustomer(String id) async {
+  Future<bool> deleteCustomer(String id, OrderProvider orderProv) async {
     final success = await CustomerService.deleteCustomer(id);
     if (success) {
       _customers.removeWhere((c) => (c['_id'] ?? c['id']) == id);
+      await orderProv.fetchOrders(); // Sync home screen
       notifyListeners();
       return true;
     }

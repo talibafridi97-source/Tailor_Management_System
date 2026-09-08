@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/customer_provider.dart';
+import '../controllers/order_provider.dart';
 import 'add_customer_screen.dart';
 import 'edit_customer_screen.dart';
 
@@ -212,16 +213,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              final success = await context.read<CustomerProvider>().deleteCustomer(id);
+              final orderProv = context.read<OrderProvider>();
+              final success = await context.read<CustomerProvider>().deleteCustomer(id, orderProv);
               if (context.mounted) {
                 Navigator.pop(ctx);
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Customer Deleted Successfully"), backgroundColor: Colors.green),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Delete Failed. Check Backend API."), backgroundColor: Colors.red),
+                    const SnackBar(content: Text("Customer Deleted & Home Refreshed"), backgroundColor: Colors.green),
                   );
                 }
               }

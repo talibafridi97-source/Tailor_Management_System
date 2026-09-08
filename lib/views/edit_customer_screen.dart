@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/customer_provider.dart';
+import '../controllers/order_provider.dart';
 
 class EditCustomerScreen extends StatefulWidget {
   final String docId;
@@ -44,6 +45,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final orderProv = context.read<OrderProvider>();
       final success = await context.read<CustomerProvider>().updateCustomer(
         widget.docId, 
         {
@@ -51,7 +53,8 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
           'phone': _phoneController.text.trim(),
           'address': _addressController.text.trim(),
           'gender': _selectedGender,
-        }
+        },
+        orderProv
       );
 
       if (mounted) {
@@ -80,7 +83,8 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              final success = await context.read<CustomerProvider>().deleteCustomer(widget.docId);
+              final orderProv = context.read<OrderProvider>();
+              final success = await context.read<CustomerProvider>().deleteCustomer(widget.docId, orderProv);
               if (mounted) {
                 Navigator.pop(ctx);
                 if (success) {
@@ -90,7 +94,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text("Delete"),
           ),
         ],
       ),

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
+import '../services/auth_service.dart';
+import 'tailor_book.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -340,10 +342,13 @@ class SettingsScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () async {
-              // TODO: Implement MongoDB Logout
+              await AuthService.removeToken();
               if (context.mounted) {
-                Navigator.pop(ctx);
-                Navigator.pop(context); // Go back from settings to trigger main.dart listener
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TailorBookScreen()),
+                  (route) => false,
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),

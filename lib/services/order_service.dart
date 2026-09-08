@@ -21,7 +21,6 @@ class OrderService {
   }) async {
     try {
       final token = await AuthService.getToken();
-
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {
@@ -43,20 +42,15 @@ class OrderService {
           'karigarName': karigarName,
           'status': 'pending', 
         }),
-      );
-
-      final dynamic data = _safeDecode(response.body);
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        return {
-          'success': false, 
-          'message': 'Server Error ${response.statusCode}: ${data is Map ? data['message'] : 'Check Backend'}'
-        };
+        return {'success': false, 'message': 'Server Error ${response.statusCode}'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Connection Error: $e'};
+      return {'success': false, 'message': 'Network Error: $e'};
     }
   }
 
@@ -64,23 +58,22 @@ class OrderService {
     try {
       final token = await AuthService.getToken();
       if (token == null || token.isEmpty) {
-        return {'success': false, 'message': 'Please Logout and Login again (Token Missing)'};
+        return {'success': false, 'message': 'Token Missing. Please Login again.'};
       }
 
+      print("FETCHING ORDERS FROM: $baseUrl");
       final response = await http.get(
         Uri.parse(baseUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
-      if (response.body.toLowerCase().contains('<!doctype html>') || 
-          response.body.toLowerCase().contains('<html>')) {
-        return {
-          'success': false, 
-          'message': 'Backend Error (${response.statusCode}): Received HTML.'
-        };
+      print("ORDERS STATUS: ${response.statusCode}");
+
+      if (response.body.toLowerCase().contains('<!doctype html>')) {
+        return {'success': false, 'message': 'Backend Error: Received HTML instead of Data.'};
       }
 
       if (response.statusCode == 200) {
@@ -90,29 +83,23 @@ class OrderService {
         if (decoded is List) {
           ordersList = decoded;
         } else if (decoded is Map) {
-          ordersList = decoded['data'] ?? decoded['orders'] ?? decoded['allOrders'] ?? [];
+          ordersList = decoded['data'] ?? decoded['orders'] ?? [];
         }
         
+        print("LOADED ${ordersList.length} ORDERS");
         return {'success': true, 'data': ordersList};
       } else {
-        return {'success': false, 'message': 'Server returned ${response.statusCode}'};
+        return {'success': false, 'message': 'Server returned status ${response.statusCode}'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
+      print("ORDER FETCH EXCEPTION: $e");
+      return {'success': false, 'message': 'Connection Error. Is your Laptop/Server reachable?'};
     }
   }
 
   static Future<List<dynamic>> getOrders() async {
     final res = await getOrdersVerbose();
     return res['success'] ? res['data'] : [];
-  }
-
-  static dynamic _safeDecode(String body) {
-    try {
-      return jsonDecode(body);
-    } catch (e) {
-      return null;
-    }
   }
 
   static Future<Map<String, dynamic>> updateOrderStatus(String orderId, String status) async {
@@ -127,9 +114,7 @@ class OrderService {
         body: jsonEncode({'status': status}),
       );
       return {'success': response.statusCode == 200};
-    } catch (e) {
-      return {'success': false};
-    }
+    } catch (e) { return {'success': false}; }
   }
 
   static Future<Map<String, dynamic>> updatePayment(String orderId, double totalBill) async {
@@ -146,10 +131,22 @@ class OrderService {
   static Future<Map<String, dynamic>> deleteOrder(String orderId) async {
     try {
       final token = await AuthService.getToken();
-      final response = await http.delete(Uri.parse('$baseUrl/$orderId'), headers: {
+      print("DEBUG: Deleting Order -> $baseUrl/$orderId");
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$orderId'),
+        headers: {
           'Authorization': 'Bearer $token',
-        });
-      return {'success': response.statusCode == 200};
-    } catch (e) { return {'success': false}; }
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print("DEBUG: Delete Result Status -> ${response.statusCode}");
+      return {
+        'success': response.statusCode == 200 || response.statusCode == 204,
+        'message': response.statusCode == 404 ? "Route not found on Backend" : "Server Error"
+      };
+    } catch (e) {
+      print("DEBUG: Delete Exception -> $e");
+      return {'success': false, 'message': e.toString()};
+    }
   }
 }

@@ -410,6 +410,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       final custSaved = await customerProvider.addCustomer(
         name: widget.clientName,
         phone: widget.phone,
+        orderProv: orderProvider, // Pass order provider for sync
         address: widget.address,
         gender: widget.gender,
         measurements: mData,
