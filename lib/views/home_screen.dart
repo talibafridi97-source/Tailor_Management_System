@@ -365,7 +365,23 @@ class _HomeScreenState extends State<HomeScreen> {
               backgroundColor: _statusColor.withOpacity(0.1),
               child: Icon(Icons.person, color: _statusColor),
             ),
-            title: Text(data['clientName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(data['clientName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                  onSelected: (val) {
+                    if (val == 'edit') Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: data, orderId: id)));
+                    if (val == 'delete') _confirmDeleteOrder(id, data['clientName'] ?? '', provider);
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text("View/Edit")])),
+                    const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 18), SizedBox(width: 8), Text("Delete", style: TextStyle(color: Colors.red))])),
+                  ],
+                ),
+              ],
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -421,5 +437,29 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text("Order moved to $newStatus"), backgroundColor: Colors.green),
       );
     }
+  }
+
+  void _confirmDeleteOrder(String id, String name, OrderProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Order?"),
+        content: Text("Are you sure you want to delete order for '$name'?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await provider.deleteOrder(id);
+              if (mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Deleted")));
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 }

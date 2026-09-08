@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../services/auth_service.dart';
+import '../controllers/inventory_provider.dart';
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
 
@@ -17,33 +15,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = "All";
-  List<dynamic> _inventory = [];
-  bool _isLoading = false;
-
-  final String _baseUrl = 'http://192.168.10.24:5000/api/inventory';
 
   @override
   void initState() {
     super.initState();
-    _fetchInventory();
-  }
-
-  Future<void> _fetchInventory() async {
-    setState(() => _isLoading = true);
-    try {
-      final token = await AuthService.getToken();
-      final response = await http.get(
-        Uri.parse(_baseUrl),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (response.statusCode == 200) {
-        setState(() => _inventory = jsonDecode(response.body));
-      }
-    } catch (e) {
-      print("Inventory Error: $e");
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().fetchItems();
+    });
   }
 
   @override
@@ -64,13 +42,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
         title: Text(t('inventory'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(onPressed: _fetchInventory, icon: const Icon(Icons.refresh, color: Colors.white)),
+          IconButton(
+            onPressed: () => context.read<InventoryProvider>().fetchItems(), 
+            icon: const Icon(Icons.refresh, color: Colors.white)
+          ),
         ],
       ),
       body: Column(
         children: [
           _buildHeader(t),
-          _buildCategoryFilter(categories, t, locale),
+          _buildCategoryFilter(categories, t),
           Expanded(child: _buildInventoryList(t)),
         ],
       ),
@@ -102,7 +83,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildCategoryFilter(List<String> cats, String Function(String) t, String locale) {
+  Widget _buildCategoryFilter(List<String> cats, String Function(String) t) {
     return Container(
       height: 60,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -122,6 +103,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFF0056D2) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: [if(!isSelected) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]
               ),
               child: Center(child: Text(display, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold))),
             ),
@@ -132,41 +114,77 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildInventoryList(String Function(String) t) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    return Consumer<InventoryProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) return const Center(child: CircularProgressIndicator());
 
-    var items = _inventory.where((item) {
-      final name = (item['name'] ?? '').toString().toLowerCase();
-      final cat = item['category'] ?? '';
-      return name.contains(_searchQuery) && (_selectedCategory == "All" || cat == _selectedCategory);
-    }).toList();
+        var items = provider.items.where((item) {
+          final name = (item['name'] ?? '').toString().toLowerCase();
+          final cat = item['category'] ?? '';
+          return name.contains(_searchQuery) && (_selectedCategory == "All" || cat == _selectedCategory);
+        }).toList();
 
-    if (items.isEmpty) return const Center(child: Text("Stock is empty"));
+        if (items.isEmpty) return const Center(child: Text("No items found"));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final data = items[index];
-        return _inventoryCard(data, t);
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final data = items[index];
+            return _inventoryCard(data, t);
+          },
+        );
       },
     );
   }
 
   Widget _inventoryCard(Map<String, dynamic> data, String Function(String) t) {
+    String id = data['_id'] ?? data['id'] ?? '';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
       child: ListTile(
         title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(t((data['category'] ?? 'other').toString().toLowerCase())),
-        trailing: Text("${data['quantity']} ${data['unit']}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("${data['quantity']} ${data['unit']}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: () => _confirmDelete(id, data['name'] ?? ''),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(String id, String name) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Item?"),
+        content: Text("Are you sure you want to delete '$name'?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await context.read<InventoryProvider>().deleteItem(id);
+              if (mounted) Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
 
   void _showItemSheet(BuildContext context, String Function(String) t) {
-    final name = TextEditingController();
-    final qty = TextEditingController();
+    final nameController = TextEditingController();
+    final qtyController = TextEditingController();
     String cat = "Fabric";
     String unit = "Meters";
 
@@ -174,26 +192,53 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 25),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(t('add_stock'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(controller: name, decoration: InputDecoration(labelText: "Item Name", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
-            const SizedBox(height: 12),
-            TextField(controller: qty, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: "Quantity", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () async {
-                // TODO: POST to /api/inventory
-                Navigator.pop(ctx);
-              },
-              child: const Text("Save Item"),
-            ),
-            const SizedBox(height: 30),
-          ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 25),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(t('add_stock'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(controller: nameController, decoration: InputDecoration(labelText: "Item Name", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: qtyController, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: "Quantity", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: unit,
+                      decoration: InputDecoration(labelText: "Unit", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
+                      items: ["Meters", "Yards", "Pieces", "Rolls"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      onChanged: (v) => setSheetState(() => unit = v!),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: cat,
+                decoration: InputDecoration(labelText: "Category", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
+                items: ["Fabric", "Buttons", "Thread", "Lace", "Bukram", "Other"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) => setSheetState(() => cat = v!),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity, height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  onPressed: () async {
+                    if (nameController.text.isEmpty || qtyController.text.isEmpty) return;
+                    final success = await context.read<InventoryProvider>().addItem(nameController.text, qtyController.text, unit, cat);
+                    if (mounted && success) Navigator.pop(ctx);
+                  },
+                  child: const Text("Save Item", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );

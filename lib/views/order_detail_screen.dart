@@ -225,6 +225,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           _infoRow(Icons.calendar_today, "Order Date", DateFormatter.format(orderDate), const Color(0xFFFF8C00)),
           const SizedBox(height: 12),
           _infoRow(Icons.event, "Delivery Date", DateFormatter.format(deliveryDate), const Color(0xFF00C853)),
+          if (widget.order['karigarName'] != null && widget.order['karigarName'].toString().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _infoRow(Icons.engineering_outlined, "Assigned To", widget.order['karigarName'], Colors.blueGrey),
+          ],
         ],
       ),
     );

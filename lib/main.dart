@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'controllers/settings_controller.dart';
 import 'controllers/order_provider.dart';
 import 'controllers/customer_provider.dart';
+import 'controllers/inventory_provider.dart';
 import 'services/auth_service.dart';
 import 'views/home_screen.dart';
 import 'views/tailor_book.dart';
@@ -20,6 +21,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SettingsController()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProvider(create: (_) => InventoryProvider()),
       ],
       child: const MyApp(),
     ),
