@@ -13,7 +13,6 @@ class _WorkerStatsScreenState extends State<WorkerStatsScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure orders are loaded when entering this screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrderProvider>().fetchOrders();
     });
@@ -30,10 +29,12 @@ class _WorkerStatsScreenState extends State<WorkerStatsScreen> {
           ),
         ),
         title: const Text("Staff Workload Tracking", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => context.read<OrderProvider>().fetchOrders(),
+          )
+        ],
       ),
       body: Consumer<OrderProvider>(
         builder: (context, provider, child) {
@@ -41,13 +42,12 @@ class _WorkerStatsScreenState extends State<WorkerStatsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Logic to group orders by Karigar (Worker)
+          // Group orders by Karigar
           Map<String, List<dynamic>> karigarMap = {};
           
           for (var o in provider.orders) {
-            // Check both possible keys from backend
-            String name = (o['karigarName'] ?? o['workerName'] ?? 'Unassigned').toString();
-            if (name.trim().isEmpty) name = 'Unassigned';
+            String name = (o['karigarName'] ?? '').toString().trim();
+            if (name.isEmpty) name = 'Unassigned (No Worker)';
             
             if (!karigarMap.containsKey(name)) {
               karigarMap[name] = [];
@@ -55,94 +55,64 @@ class _WorkerStatsScreenState extends State<WorkerStatsScreen> {
             karigarMap[name]!.add(o);
           }
 
-          if (karigarMap.isEmpty || (karigarMap.length == 1 && karigarMap.containsKey('Unassigned') && karigarMap['Unassigned']!.isEmpty)) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.engineering_outlined, size: 80, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  const Text("No orders found to track staff workload.", style: TextStyle(color: Colors.grey)),
-                  TextButton(
-                    onPressed: () => provider.fetchOrders(),
-                    child: const Text("Refresh Data"),
-                  )
-                ],
-              ),
-            );
+          if (provider.orders.isEmpty) {
+            return const Center(child: Text("No orders found in the system."));
           }
 
-          return RefreshIndicator(
-            onRefresh: () => provider.fetchOrders(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: karigarMap.length,
-              itemBuilder: (context, index) {
-                String name = karigarMap.keys.elementAt(index);
-                List<dynamic> workerOrders = karigarMap[name]!;
-                
-                int pending = workerOrders.where((o) => 
-                  o['status']?.toString().toLowerCase() == 'pending'
-                ).length;
-                
-                int complete = workerOrders.where((o) => 
-                  o['status']?.toString().toLowerCase() == 'complete'
-                ).length;
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: karigarMap.length,
+            itemBuilder: (context, index) {
+              String name = karigarMap.keys.elementAt(index);
+              List<dynamic> workerOrders = karigarMap[name]!;
+              
+              int pending = workerOrders.where((o) => o['status'] == 'pending').length;
+              int ready = workerOrders.where((o) => o['status'] == 'complete').length;
 
-                int delivered = workerOrders.where((o) => 
-                  o['status']?.toString().toLowerCase() == 'delivered'
-                ).length;
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))]
-                  ),
+              return Card(
+                elevation: 0,
+                margin: const EdgeInsets.only(bottom: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
-                            child: const Icon(Icons.person, color: Colors.blue, size: 24),
+                          CircleAvatar(
+                            backgroundColor: name.contains('Unassigned') ? Colors.grey.shade200 : Colors.blue.shade50,
+                            child: Icon(Icons.person, color: name.contains('Unassigned') ? Colors.grey : Colors.blue),
                           ),
-                          const SizedBox(width: 16),
-                          Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                          const SizedBox(width: 12),
+                          Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const Divider(height: 30),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _miniStat("Pending", pending, Colors.orange),
-                          _miniStat("Ready", complete, Colors.green),
-                          _miniStat("Delivered", delivered, Colors.blue),
+                          _statCol("Pending", pending, Colors.orange),
+                          _statCol("Ready", ready, Colors.green),
+                          _statCol("Total", workerOrders.length, Colors.purple),
                         ],
                       ),
                     ],
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _miniStat(String label, int val, Color color) {
+  Widget _statCol(String label, int val, Color color) {
     return Column(
       children: [
         Text("$val", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500)),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
       ],
     );
   }

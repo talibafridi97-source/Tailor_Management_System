@@ -82,7 +82,12 @@ class OrderProvider extends ChangeNotifier {
   Future<bool> updateKarigar(String orderId, String karigarName) async {
     final result = await OrderService.updateKarigar(orderId, karigarName);
     if (result['success']) {
-      await fetchOrders();
+      // Fast Local Update: Update the name in the current list without re-fetching
+      final index = _orders.indexWhere((o) => (o['_id'] ?? o['id']) == orderId);
+      if (index != -1) {
+        _orders[index]['karigarName'] = karigarName;
+        notifyListeners();
+      }
       return true;
     }
     return false;

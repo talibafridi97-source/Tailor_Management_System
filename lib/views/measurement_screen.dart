@@ -44,7 +44,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   bool _isUrgent = false;
   bool _isLoading = false;
 
-  final List<String> _karigars = ["Self", "Karigar 1", "Karigar 2", "Karigar 3", "Karigar 4", "Karigar 5"];
+  final List<String> _karigars = ["Master (Self)", "Ahmad (Tailor)", "Bilal (Tailor)", "Hamza (Specialist)", "Zeeshan (Master)"];
 
   DateTime _orderDate = DateTime.now();
   DateTime _deliveryDate = DateTime.now().add(const Duration(days: 7));

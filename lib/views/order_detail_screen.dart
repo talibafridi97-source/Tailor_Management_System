@@ -20,7 +20,7 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  final List<String> _karigars = ["Self", "Karigar 1", "Karigar 2", "Karigar 3", "Karigar 4", "Karigar 5"];
+  final List<String> _karigars = ["Master (Self)", "Ahmad (Tailor)", "Bilal (Tailor)", "Hamza (Specialist)", "Zeeshan (Master)"];
 
   Color get _statusColor {
     switch (widget.order['status']) {
