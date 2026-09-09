@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class ExpenseService {
-  static const String baseUrl = 'http://192.168.10.24:5000/api/expenses';
+  static const String baseUrl = 'http://192.168.10.16:5000/api/expenses';
 
   static Future<List<dynamic>> getExpenses() async {
     try {

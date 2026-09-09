@@ -115,12 +115,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   end: Alignment.bottomRight,
                 ),
               ),
-              currentAccountPicture: const CircleAvatar(
+              currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white24,
-                child: Icon(Icons.person, color: Colors.white, size: 35),
+                child: settings.shopLogo.isNotEmpty 
+                    ? ClipOval(
+                        child: Image.network(
+                          settings.shopLogo,
+                          width: 80, height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => 
+                            const Icon(Icons.person, color: Colors.white, size: 35),
+                        ),
+                      )
+                    : const Icon(Icons.person, color: Colors.white, size: 35),
               ),
-              accountName: Text(t('app_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              accountEmail: const Text("tailor@management.com", style: TextStyle(color: Colors.white70, fontSize: 13)),
+              accountName: Text(settings.shopName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              accountEmail: Text(settings.shopContact.isEmpty ? "No contact added" : settings.shopContact, style: const TextStyle(color: Colors.white70, fontSize: 13)),
             ),
             _drawerItem(Icons.home, t('home'), Colors.cyanAccent, () {}),
             _drawerItem(Icons.add_shopping_cart, t('create_order'), Colors.orangeAccent, () {
@@ -186,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: Text(t('app_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(settings.shopName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           IconButton(

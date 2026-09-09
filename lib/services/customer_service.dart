@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class CustomerService {
-  static const String baseUrl = 'http://192.168.10.24:5000/api/customers';
+  static const String baseUrl = 'http://192.168.10.16:5000/api/customers';
 
   // 1. Add New Customer
   static Future<Map<String, dynamic>> addCustomer({

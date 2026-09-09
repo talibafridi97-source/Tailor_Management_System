@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'package:firebase_auth/firebase_auth.dart'; // TODO: Replace with MongoDB Auth
-// import 'package:cloud_firestore/cloud_firestore.dart'; // TODO: Replace with MongoDB equivalent
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
 import '../services/auth_service.dart';
@@ -31,14 +29,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          t('settings'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-        ),
+        title: Text(t('settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
         centerTitle: true,
       ),
       body: ListView(
@@ -48,25 +39,9 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.storefront,
             title: t('business_profile'),
-            subtitle: t('business_details'),
+            subtitle: settings.shopName,
             color: Colors.blueAccent,
-            onTap: () => _showBusinessProfileDialog(context, t),
-          ),
-          _settingsItem(
-            context: context,
-            icon: Icons.straighten,
-            title: t('measurements'),
-            subtitle: t('unit_desc'),
-            color: Colors.greenAccent,
-            onTap: () => _showMeasurementUnitDialog(context, settings, t),
-          ),
-          _settingsItem(
-            context: context,
-            icon: Icons.notifications_active_outlined,
-            title: t('notifications'),
-            subtitle: t('notif_desc'),
-            color: Colors.orangeAccent,
-            onTap: () => _showNotificationSettingsDialog(context, settings, t),
+            onTap: () => _showBusinessProfileDialog(context, settings, t),
           ),
           _settingsItem(
             context: context,
@@ -80,31 +55,22 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.security,
             title: t('account'),
-            subtitle: "Change password, update email, and logout",
+            subtitle: "Logout and Security",
             color: Colors.redAccent,
             onTap: () => _showAccountSecurityDialog(context, t),
           ),
           const SizedBox(height: 20),
-          const Center(
-            child: Text(
-              "Tailor Book v1.0.0",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ),
+          const Center(child: Text("Tailor Book v1.1.0", style: TextStyle(color: Colors.grey, fontSize: 12))),
         ],
       ),
     );
   }
 
-  void _showBusinessProfileDialog(BuildContext context, String Function(String) t) async {
-    final data = {};
-
-    final shopNameController = TextEditingController(text: data['shopName'] ?? '');
-    final contactController = TextEditingController(text: data['shopContact'] ?? '');
-    final addressController = TextEditingController(text: data['shopAddress'] ?? '');
-    final logoController = TextEditingController(text: data['shopLogo'] ?? '');
-
-    if (!context.mounted) return;
+  void _showBusinessProfileDialog(BuildContext context, SettingsController settings, String Function(String) t) {
+    final shopNameController = TextEditingController(text: settings.shopName);
+    final contactController = TextEditingController(text: settings.shopContact);
+    final addressController = TextEditingController(text: settings.shopAddress);
+    final logoController = TextEditingController(text: settings.shopLogo);
 
     showDialog(
       context: context,
@@ -115,26 +81,13 @@ class SettingsScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: shopNameController,
-                decoration: InputDecoration(labelText: t('shop_name'), prefixIcon: const Icon(Icons.store)),
-              ),
+              TextField(controller: shopNameController, decoration: InputDecoration(labelText: t('shop_name'), prefixIcon: const Icon(Icons.store))),
               const SizedBox(height: 10),
-              TextField(
-                controller: contactController,
-                decoration: InputDecoration(labelText: t('shop_contact'), prefixIcon: const Icon(Icons.phone)),
-                keyboardType: TextInputType.phone,
-              ),
+              TextField(controller: contactController, decoration: InputDecoration(labelText: t('shop_contact'), prefixIcon: const Icon(Icons.phone)), keyboardType: TextInputType.phone),
               const SizedBox(height: 10),
-              TextField(
-                controller: addressController,
-                decoration: InputDecoration(labelText: t('shop_address'), prefixIcon: const Icon(Icons.location_on)),
-              ),
+              TextField(controller: addressController, decoration: InputDecoration(labelText: t('shop_address'), prefixIcon: const Icon(Icons.location_on))),
               const SizedBox(height: 10),
-              TextField(
-                controller: logoController,
-                decoration: InputDecoration(labelText: t('shop_logo'), prefixIcon: const Icon(Icons.link), hintText: "https://..."),
-              ),
+              TextField(controller: logoController, decoration: InputDecoration(labelText: "Logo URL", prefixIcon: const Icon(Icons.link))),
             ],
           ),
         ),
@@ -142,13 +95,21 @@ class SettingsScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () async {
-              // TODO: Implement MongoDB User Profile Update
+              final success = await settings.updateBusinessProfile(
+                name: shopNameController.text,
+                contact: contactController.text,
+                address: addressController.text,
+                logo: logoController.text,
+              );
               if (context.mounted) {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('success')), backgroundColor: Colors.green));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(success ? "Profile Updated!" : "Update Failed"),
+                  backgroundColor: success ? Colors.green : Colors.red,
+                ));
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0056D2), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
             child: Text(t('save')),
           ),
         ],
@@ -156,75 +117,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showNotificationSettingsDialog(BuildContext context, SettingsController settings, String Function(String) t) {
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(t('notifications'), style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SwitchListTile(
-                title: Text(t('delivery_reminder')),
-                secondary: const Icon(Icons.alarm, color: Colors.orangeAccent),
-                value: settings.deliveryReminder,
-                onChanged: (val) {
-                  settings.toggleDeliveryReminder(val);
-                },
-              ),
-              SwitchListTile(
-                title: Text(t('payment_reminder')),
-                secondary: const Icon(Icons.payment, color: Colors.greenAccent),
-                value: settings.paymentReminder,
-                onChanged: (val) {
-                  settings.togglePaymentReminder(val);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showMeasurementUnitDialog(BuildContext context, SettingsController settings, String Function(String) t) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(t('select_unit'), style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: Text(t('inches')),
-              value: 'inches',
-              groupValue: settings.measurementUnit,
-              onChanged: (val) {
-                if (val != null) settings.setMeasurementUnit(val);
-                Navigator.pop(ctx);
-              },
-            ),
-            RadioListTile<String>(
-              title: Text(t('cm')),
-              value: 'cm',
-              groupValue: settings.measurementUnit,
-              onChanged: (val) {
-                if (val != null) settings.setMeasurementUnit(val);
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // ... (Baqi methods same rahenge)
   void _showAccountSecurityDialog(BuildContext context, String Function(String) t) {
     showDialog(
       context: context,
@@ -235,24 +128,7 @@ class SettingsScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.lock_outline, color: Colors.redAccent),
-              title: Text(t('change_password')),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showChangePasswordDialog(context, t);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.email_outlined, color: Colors.blueAccent),
-              title: Text(t('update_email')),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showUpdateEmailDialog(context, t);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.grey),
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
               title: Text(t('logout_title')),
               onTap: () {
                 Navigator.pop(ctx);
@@ -261,73 +137,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showChangePasswordDialog(BuildContext context, String Function(String) t) {
-    final passController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t('change_password')),
-        content: TextField(
-          controller: passController,
-          obscureText: true,
-          decoration: InputDecoration(hintText: t('new_password')),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                // TODO: Implement MongoDB Password Update
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('password_updated')), backgroundColor: Colors.green));
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('reauth_needed')), backgroundColor: Colors.red));
-                }
-              }
-            },
-            child: Text(t('save')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showUpdateEmailDialog(BuildContext context, String Function(String) t) {
-    final emailController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t('update_email')),
-        content: TextField(
-          controller: emailController,
-          decoration: InputDecoration(hintText: t('new_email')),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                // TODO: Implement MongoDB Email Update
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('email_updated')), backgroundColor: Colors.green));
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('reauth_needed')), backgroundColor: Colors.red));
-                }
-              }
-            },
-            child: Text(t('save')),
-          ),
-        ],
       ),
     );
   }
@@ -344,14 +153,10 @@ class SettingsScreen extends StatelessWidget {
             onPressed: () async {
               await AuthService.removeToken();
               if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TailorBookScreen()),
-                  (route) => false,
-                );
+                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const TailorBookScreen()), (route) => false);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text(t('logout_title')),
           ),
         ],
@@ -362,122 +167,41 @@ class SettingsScreen extends StatelessWidget {
   void _showThemeLanguageDialog(BuildContext context, SettingsController settings, String Function(String) t) {
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(t('theme'), style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Theme Toggle
-              SwitchListTile(
-                title: Text(t('dark_mode')),
-                secondary: Icon(Icons.dark_mode, color: Colors.purple.shade300),
-                value: settings.themeMode == ThemeMode.dark,
-                onChanged: (val) {
-                  settings.toggleTheme(val);
-                },
-              ),
-              const Divider(),
-              // Language Selection
-              ListTile(
-                title: Text(t('language')),
-                leading: const Icon(Icons.language, color: Colors.blue),
-                subtitle: Text(_getLangName(settings.locale.languageCode)),
-                onTap: () {
-                  _showLanguagePicker(context, settings, t);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showLanguagePicker(BuildContext context, SettingsController settings, String Function(String) t) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t('theme'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(t('select_lang'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            _langOption(context, settings, "English", "en"),
-            _langOption(context, settings, "اردو (Urdu)", "ur"),
-            _langOption(context, settings, "हिंदी (Hindi)", "hi"),
-            _langOption(context, settings, "پښتو (Pashto)", "ps"),
+            SwitchListTile(
+              title: Text(t('dark_mode')),
+              value: settings.themeMode == ThemeMode.dark,
+              onChanged: (val) => settings.toggleTheme(val),
+            ),
+            ListTile(
+              title: Text(t('language')),
+              subtitle: Text(settings.locale.languageCode == 'en' ? "English" : "اردو"),
+              onTap: () {
+                settings.setLanguage(settings.locale.languageCode == 'en' ? 'ur' : 'en');
+                Navigator.pop(ctx);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _langOption(BuildContext context, SettingsController settings, String name, String code) {
-    bool isSelected = settings.locale.languageCode == code;
-    return ListTile(
-      title: Text(name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.blue) : null,
-      onTap: () {
-        settings.setLanguage(code);
-        Navigator.pop(context);
-      },
-    );
-  }
-
-  String _getLangName(String code) {
-    switch (code) {
-      case 'ur': return "اردو (Urdu)";
-      case 'hi': return "हिंदी (Hindi)";
-      case 'ps': return "پښتو (Pashto)";
-      default: return "English";
-    }
-  }
-
-  Widget _settingsItem({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
+  Widget _settingsItem({required BuildContext context, required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
+    return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontSize: 13),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
       ),
     );
   }
