@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../controllers/settings_controller.dart';
 import '../core/app_translations.dart';
 import '../services/auth_service.dart';
+import '../core/api_config.dart';
 import 'tailor_book.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -59,9 +62,70 @@ class SettingsScreen extends StatelessWidget {
             color: Colors.redAccent,
             onTap: () => _showAccountSecurityDialog(context, t),
           ),
+          _settingsItem(
+            context: context,
+            icon: Icons.dns,
+            title: t('server_config'),
+            subtitle: t('server_config_sub'),
+            color: Colors.teal,
+            onTap: () => _showServerConfigDialog(context, t),
+          ),
           const SizedBox(height: 20),
           const Center(child: Text("Tailor Book v1.1.0", style: TextStyle(color: Colors.grey, fontSize: 12))),
         ],
+      ),
+    );
+  }
+
+  void _showImageSourceActionSheet(BuildContext context, Function(String) onImagePicked) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Colors.blue),
+              title: const Text("Take a Photo (Camera)"),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 50,
+                  maxWidth: 300,
+                  maxHeight: 300,
+                );
+                if (pickedFile != null) {
+                  final bytes = await pickedFile.readAsBytes();
+                  final base64String = base64Encode(bytes);
+                  onImagePicked(base64String);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Colors.green),
+              title: const Text("Choose from Gallery"),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 50,
+                  maxWidth: 300,
+                  maxHeight: 300,
+                );
+                if (pickedFile != null) {
+                  final bytes = await pickedFile.readAsBytes();
+                  final base64String = base64Encode(bytes);
+                  onImagePicked(base64String);
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -70,49 +134,86 @@ class SettingsScreen extends StatelessWidget {
     final shopNameController = TextEditingController(text: settings.shopName);
     final contactController = TextEditingController(text: settings.shopContact);
     final addressController = TextEditingController(text: settings.shopAddress);
-    final logoController = TextEditingController(text: settings.shopLogo);
+    String currentLogo = settings.shopLogo;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(t('business_profile'), style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: shopNameController, decoration: InputDecoration(labelText: t('shop_name'), prefixIcon: const Icon(Icons.store))),
-              const SizedBox(height: 10),
-              TextField(controller: contactController, decoration: InputDecoration(labelText: t('shop_contact'), prefixIcon: const Icon(Icons.phone)), keyboardType: TextInputType.phone),
-              const SizedBox(height: 10),
-              TextField(controller: addressController, decoration: InputDecoration(labelText: t('shop_address'), prefixIcon: const Icon(Icons.location_on))),
-              const SizedBox(height: 10),
-              TextField(controller: logoController, decoration: InputDecoration(labelText: "Logo URL", prefixIcon: const Icon(Icons.link))),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(t('business_profile'), style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    _showImageSourceActionSheet(context, (base64Image) {
+                      setStateDialog(() {
+                        currentLogo = base64Image;
+                      });
+                    });
+                  },
+                  child: Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.grey.shade300,
+                          backgroundImage: currentLogo.isNotEmpty
+                              ? (currentLogo.startsWith('http')
+                                  ? NetworkImage(currentLogo) as ImageProvider
+                                  : MemoryImage(base64Decode(currentLogo)))
+                              : null,
+                          child: currentLogo.isEmpty
+                              ? const Icon(Icons.store, size: 40, color: Colors.grey)
+                              : null,
+                        ),
+                        const Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: Colors.blue,
+                            child: Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(controller: shopNameController, decoration: InputDecoration(labelText: t('shop_name'), prefixIcon: const Icon(Icons.store))),
+                const SizedBox(height: 10),
+                TextField(controller: contactController, decoration: InputDecoration(labelText: t('shop_contact'), prefixIcon: const Icon(Icons.phone)), keyboardType: TextInputType.phone),
+                const SizedBox(height: 10),
+                TextField(controller: addressController, decoration: InputDecoration(labelText: t('shop_address'), prefixIcon: const Icon(Icons.location_on))),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+            ElevatedButton(
+              onPressed: () async {
+                final success = await settings.updateBusinessProfile(
+                  name: shopNameController.text,
+                  contact: contactController.text,
+                  address: addressController.text,
+                  logo: currentLogo,
+                );
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(success ? "Profile Updated!" : "Update Failed"),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+              child: Text(t('save')),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await settings.updateBusinessProfile(
-                name: shopNameController.text,
-                contact: contactController.text,
-                address: addressController.text,
-                logo: logoController.text,
-              );
-              if (context.mounted) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(success ? "Profile Updated!" : "Update Failed"),
-                  backgroundColor: success ? Colors.green : Colors.red,
-                ));
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
-            child: Text(t('save')),
-          ),
-        ],
       ),
     );
   }
@@ -202,6 +303,54 @@ class SettingsScreen extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+      ),
+    );
+  }
+
+  void _showServerConfigDialog(BuildContext context, String Function(String) t) {
+    final ipController = TextEditingController(text: ApiConfig.ip);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t('server_config'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Format: 192.168.1.10 (No http:// or ports needed here unless required)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ipController,
+              decoration: InputDecoration(
+                labelText: t('server_ip'),
+                prefixIcon: const Icon(Icons.computer),
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+          ElevatedButton(
+            onPressed: () async {
+              String newIp = ipController.text.trim();
+              if (newIp.isNotEmpty) {
+                await ApiConfig.setIp(newIp);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Server IP Updated to: \$newIp"),
+                    backgroundColor: Colors.green,
+                  ));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+            child: Text(t('save')),
+          ),
+        ],
       ),
     );
   }

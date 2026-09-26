@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'create_order_screen.dart';
 import 'order_detail_screen.dart';
@@ -12,6 +13,7 @@ import 'settings_screen.dart';
 import 'tailor_book.dart';
 import '../core/app_translations.dart';
 import '../core/date_formatter.dart';
+import '../core/api_config.dart';
 import '../services/auth_service.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/order_provider.dart';
@@ -107,30 +109,44 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0056D2), Color(0xFF4A90E2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+              },
+              child: UserAccountsDrawerHeader(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0056D2), Color(0xFF4A90E2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: Colors.white24,
+                  child: settings.shopLogo.isNotEmpty 
+                      ? ClipOval(
+                          child: settings.shopLogo.startsWith('http')
+                              ? Image.network(
+                                  settings.shopLogo,
+                                  width: 80, height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => 
+                                    const Icon(Icons.person, color: Colors.white, size: 35),
+                                )
+                              : Image.memory(
+                                  base64Decode(settings.shopLogo),
+                                  width: 80, height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => 
+                                    const Icon(Icons.person, color: Colors.white, size: 35),
+                                ),
+                        )
+                      : const Icon(Icons.person, color: Colors.white, size: 35),
+                ),
+                accountName: Text(settings.shopName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                accountEmail: Text(settings.shopContact.isEmpty ? "No contact added" : settings.shopContact, style: const TextStyle(color: Colors.white70, fontSize: 13)),
               ),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white24,
-                child: settings.shopLogo.isNotEmpty 
-                    ? ClipOval(
-                        child: Image.network(
-                          settings.shopLogo,
-                          width: 80, height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => 
-                            const Icon(Icons.person, color: Colors.white, size: 35),
-                        ),
-                      )
-                    : const Icon(Icons.person, color: Colors.white, size: 35),
-              ),
-              accountName: Text(settings.shopName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              accountEmail: Text(settings.shopContact.isEmpty ? "No contact added" : settings.shopContact, style: const TextStyle(color: Colors.white70, fontSize: 13)),
             ),
             _drawerItem(Icons.home, t('home'), Colors.cyanAccent, () {}),
             _drawerItem(Icons.add_shopping_cart, t('create_order'), Colors.orangeAccent, () {
@@ -288,6 +304,41 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showIpConfigDialog(OrderProvider provider) {
+    final ipController = TextEditingController(text: ApiConfig.ip);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Configure Server IP"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Current IP: ${ApiConfig.ip}\nEnter your laptop's Wi-Fi IP address:"),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ipController,
+              decoration: const InputDecoration(
+                labelText: "Server IP",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              await ApiConfig.setIp(ipController.text);
+              if (ctx.mounted) Navigator.pop(ctx);
+              provider.fetchOrders();
+            },
+            child: const Text("Save & Connect"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOrderList() {
     final settings = Provider.of<SettingsController>(context, listen: false);
     final locale = settings.locale.languageCode;
@@ -310,7 +361,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 10),
                   Text(provider.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 20),
-                  ElevatedButton(onPressed: () => provider.fetchOrders(), child: const Text("Retry")),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(onPressed: () => provider.fetchOrders(), child: const Text("Retry")),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                        onPressed: () => _showIpConfigDialog(provider),
+                        child: const Text("Change Server IP"),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

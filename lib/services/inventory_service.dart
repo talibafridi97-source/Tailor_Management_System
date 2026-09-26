@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../core/api_config.dart';
 
 class InventoryService {
-  static const String baseUrl = 'http://192.168.10.16:5000/api/inventory';
+  static String get baseUrl => ApiConfig.inventory;
 
   static Future<List<dynamic>> getItems() async {
     try {

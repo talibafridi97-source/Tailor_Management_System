@@ -51,6 +51,9 @@ class AppTranslations {
       'urgent': 'Urgent',
       'mark_urgent': 'Mark as Urgent',
       'pinned_orders': 'Pinned Orders',
+      'server_config': 'Server Configuration',
+      'server_config_sub': 'Update Backend Server IP Address',
+      'server_ip': 'Server IP Address',
     },
     'ur': {
       'app_title': 'ٹیلر بک',
@@ -103,6 +106,9 @@ class AppTranslations {
       'urgent': 'فوری (Urgent)',
       'mark_urgent': 'فوری آرڈر کے طور پر نشان زد کریں',
       'pinned_orders': 'پن کیے ہوئے آرڈرز',
+      'server_config': 'سرور کنفیگریشن',
+      'server_config_sub': 'بیک اینڈ سرور کا آئی پی تبدیل کریں',
+      'server_ip': 'سرور آئی پی ایڈریس',
     },
     'hi': {
       'app_title': 'दर्जी बुक',
@@ -155,6 +161,9 @@ class AppTranslations {
       'urgent': 'तत्काल (Urgent)',
       'mark_urgent': 'तत्काल के रूप में चिह्नित करें',
       'pinned_orders': 'पिन किए गए ऑर्डर',
+      'server_config': 'सर्वर कॉन्फ़िगरेशन',
+      'server_config_sub': 'बैकएंड सर्वर आईपी अपडेट करें',
+      'server_ip': 'सर्वर आईपी पता',
     },
     'ps': {
       'app_title': 'د خیاط کتاب',
@@ -207,6 +216,9 @@ class AppTranslations {
       'urgent': 'فوري (Urgent)',
       'mark_urgent': 'د فوري په توګه په نښه کړئ',
       'pinned_orders': 'پن شوي امرونه',
+      'server_config': 'د سرور ترتیب',
+      'server_config_sub': 'د بیک انډ سرور IP تازه کړئ',
+      'server_ip': 'د سرور IP پته',
     },
   };
 

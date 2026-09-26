@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../core/api_config.dart';
 
 class ExpenseService {
-  static const String baseUrl = 'http://192.168.10.16:5000/api/expenses';
+  static String get baseUrl => ApiConfig.expenses;
 
   static Future<List<dynamic>> getExpenses() async {
     try {

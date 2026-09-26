@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
+import '../core/api_config.dart';
 
 class SettingsController extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light;
@@ -43,7 +44,7 @@ class SettingsController extends ChangeNotifier {
       if (token == null) return;
 
       final response = await http.get(
-        Uri.parse('http://192.168.10.16:5000/api/auth/profile'), // Profile endpoint
+        Uri.parse(ApiConfig.profile), // Profile endpoint
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -73,7 +74,7 @@ class SettingsController extends ChangeNotifier {
     try {
       final token = await AuthService.getToken();
       final response = await http.put(
-        Uri.parse('http://192.168.10.16:5000/api/auth/profile'),
+        Uri.parse(ApiConfig.profile),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -86,11 +87,16 @@ class SettingsController extends ChangeNotifier {
         }),
       );
 
+      print("Update Profile Status: ${response.statusCode}");
+      print("Update Profile Response: ${response.body}");
+
       if (response.statusCode == 200) {
         shopName = name;
         shopContact = contact;
         shopAddress = address;
         shopLogo = logo;
+        
+        print("Profile updated successfully locally.");
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('shopName', shopName);
@@ -100,6 +106,7 @@ class SettingsController extends ChangeNotifier {
       }
       return false;
     } catch (e) {
+      print("Update Profile Exception: $e");
       return false;
     }
   }

@@ -10,11 +10,13 @@ import 'controllers/expense_provider.dart';
 import 'services/auth_service.dart';
 import 'views/home_screen.dart';
 import 'views/tailor_book.dart';
+import 'core/api_config.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.init();
 
   runApp(
     MultiProvider(

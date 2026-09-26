@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'views/home_screen.dart';
 import 'services/auth_service.dart';
+import 'core/api_config.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -20,13 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5000/api/auth/register';
-    } else {
-      return 'http://192.168.10.16:5000/api/auth/register'; 
-    }
-  }
+  String get _baseUrl => ApiConfig.register;
 
   Future<void> _signUp() async {
     final name = _nameController.text.trim();
@@ -121,7 +116,15 @@ class _SignupScreenState extends State<SignupScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               children: [
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.dns, color: Colors.white70),
+                    tooltip: 'Server Configuration',
+                    onPressed: () => _showServerConfigDialog(context),
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle),
@@ -188,6 +191,54 @@ class _SignupScreenState extends State<SignupScreen> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
+      ),
+    );
+  }
+
+  void _showServerConfigDialog(BuildContext context) {
+    final ipController = TextEditingController(text: ApiConfig.ip);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Server Configuration', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Format: 192.168.1.10 (No http:// or ports needed here unless required)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ipController,
+              decoration: const InputDecoration(
+                labelText: 'Server IP Address',
+                prefixIcon: Icon(Icons.computer),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              String newIp = ipController.text.trim();
+              if (newIp.isNotEmpty) {
+                await ApiConfig.setIp(newIp);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Server IP Updated to: \$newIp"),
+                    backgroundColor: Colors.green,
+                  ));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

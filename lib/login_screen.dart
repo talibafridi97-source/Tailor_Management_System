@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'signup_screen.dart';
 import 'views/home_screen.dart';
 import 'services/auth_service.dart';
+import 'core/api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,14 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // Base URL for Web vs Emulator/Device
-  String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5000/api/auth/login';
-    } else {
-      return 'http://192.168.10.16:5000/api/auth/login'; // Computer's Local IP for Physical Device
-    }
-  }
+  // Base URL using ApiConfig
+  String get _baseUrl => ApiConfig.login;
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
@@ -135,7 +130,15 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.dns, color: Colors.white70),
+                    tooltip: 'Server Configuration',
+                    onPressed: () => _showServerConfigDialog(context),
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -276,6 +279,54 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showServerConfigDialog(BuildContext context) {
+    final ipController = TextEditingController(text: ApiConfig.ip);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Server Configuration', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Format: 192.168.1.10 (No http:// or ports needed here unless required)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ipController,
+              decoration: const InputDecoration(
+                labelText: 'Server IP Address',
+                prefixIcon: Icon(Icons.computer),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              String newIp = ipController.text.trim();
+              if (newIp.isNotEmpty) {
+                await ApiConfig.setIp(newIp);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Server IP Updated to: \$newIp"),
+                    backgroundColor: Colors.green,
+                  ));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
