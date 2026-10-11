@@ -25,7 +25,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _signUp() async {
     final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty || name.isEmpty) {

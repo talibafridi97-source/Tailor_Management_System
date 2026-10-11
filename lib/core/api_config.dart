@@ -1,20 +1,10 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
 class ApiConfig {
-  static String _ip = '192.168.10.4';
+  // Pixel 6 Virtual Device (Emulator) ke liye 10.0.2.2 100% permanent aur fix hai!
+  static const String ip = '10.0.2.2';
 
-  static String get ip => _ip;
+  static Future<void> init() async {}
 
-  static Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _ip = prefs.getString('server_ip') ?? '192.168.10.4';
-  }
-
-  static Future<void> setIp(String newIp) async {
-    _ip = newIp.trim();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_ip', _ip);
-  }
+  static Future<void> setIp(String newIp) async {}
 
   static String get orders => 'http://$ip:5000/api/orders';
   static String get customers => 'http://$ip:5000/api/customers';

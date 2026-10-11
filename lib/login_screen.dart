@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String get _baseUrl => ApiConfig.login;
 
   Future<void> _login() async {
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
@@ -38,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      print("LOGIN: Sending request to $_baseUrl");
       final response = await http.post(
         Uri.parse(_baseUrl),
         headers: {'Content-Type': 'application/json'},
@@ -47,12 +48,15 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
+      print("LOGIN: Status Code -> ${response.statusCode}");
+      print("LOGIN: Response Body -> ${response.body}");
+
       final data = jsonDecode(response.body);
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        final token = data['token'];
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final token = data['token'] ?? data['accessToken'] ?? data['data']?['token'];
 
         // 1. Token ko local storage me save karein aur debug log dikhain
         if (token != null) {
@@ -60,6 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
           if (kDebugMode) {
             print("LOG: Token saved successfully -> $token");
           }
+        } else {
+          print("LOGIN WARNING: Token was null in response!");
         }
 
         if (!mounted) return;

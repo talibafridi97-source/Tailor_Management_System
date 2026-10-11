@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrderProvider>().fetchOrders();
+      AuthService.syncFcmToken();
     });
   }
 
@@ -264,6 +265,8 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
         selectedItemColor: const Color(0xFF0056D2),
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(icon: const Icon(Icons.pending_actions), label: t('pending')),
           BottomNavigationBarItem(icon: const Icon(Icons.check_circle), label: t('complete')),

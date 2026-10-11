@@ -279,11 +279,61 @@ class SettingsScreen extends StatelessWidget {
               value: settings.themeMode == ThemeMode.dark,
               onChanged: (val) => settings.toggleTheme(val),
             ),
+            const Divider(),
             ListTile(
               title: Text(t('language')),
-              subtitle: Text(settings.locale.languageCode == 'en' ? "English" : "اردو"),
+              subtitle: Text(
+                settings.locale.languageCode == 'en'
+                    ? "English"
+                    : settings.locale.languageCode == 'ur'
+                        ? "اردو (Urdu)"
+                        : "العربية (Arabic)",
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
               onTap: () {
-                settings.setLanguage(settings.locale.languageCode == 'en' ? 'ur' : 'en');
+                Navigator.pop(ctx);
+                _showLanguageSelectorDialog(context, settings, t);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageSelectorDialog(BuildContext context, SettingsController settings, String Function(String) t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t('select_lang'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text("English"),
+              value: 'en',
+              groupValue: settings.locale.languageCode,
+              onChanged: (val) {
+                if (val != null) settings.setLanguage(val);
+                Navigator.pop(ctx);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text("اردو (Urdu)"),
+              value: 'ur',
+              groupValue: settings.locale.languageCode,
+              onChanged: (val) {
+                if (val != null) settings.setLanguage(val);
+                Navigator.pop(ctx);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text("العربية (Arabic)"),
+              value: 'ar',
+              groupValue: settings.locale.languageCode,
+              onChanged: (val) {
+                if (val != null) settings.setLanguage(val);
                 Navigator.pop(ctx);
               },
             ),

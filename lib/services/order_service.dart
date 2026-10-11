@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import '../core/api_config.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class OrderService {
   static String get baseUrl => ApiConfig.orders;
@@ -22,6 +23,7 @@ class OrderService {
   }) async {
     try {
       final token = await AuthService.getToken();
+      final fcmToken = await FirebaseMessaging.instance.getToken();
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {
@@ -42,6 +44,7 @@ class OrderService {
           'isPinned': isPinned,
           'karigarName': karigarName,
           'status': 'pending', 
+          'fcmToken': fcmToken,
         }),
       ).timeout(const Duration(seconds: 15));
 
