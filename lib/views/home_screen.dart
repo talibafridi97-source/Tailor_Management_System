@@ -8,9 +8,12 @@ import 'customer_screen.dart';
 import 'inventory_screen.dart';
 import 'due_payment_screen.dart';
 import 'expense_screen.dart';
+import 'analytics_screen.dart';
 import 'worker_stats_screen.dart';
 import 'settings_screen.dart';
 import 'tailor_book.dart';
+import 'customer_order_screen.dart';
+import 'tailor_bot_screen.dart';
 import '../core/app_translations.dart';
 import '../core/date_formatter.dart';
 import '../core/api_config.dart';
@@ -112,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             GestureDetector(
               onTap: () {
-                Navigator.pop(context); // Close drawer
+                Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
               },
               child: UserAccountsDrawerHeader(
@@ -153,23 +156,32 @@ class _HomeScreenState extends State<HomeScreen> {
             _drawerItem(Icons.add_shopping_cart, t('create_order'), Colors.orangeAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateOrderScreen()));
             }),
+            _drawerItem(Icons.analytics_outlined, "Analytics & Profit", Colors.pinkAccent, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+            }),
             _drawerItem(Icons.dashboard, t('dashboard'), Colors.yellowAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
             }),
             _drawerItem(Icons.payment, t('due_payment'), Colors.redAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DuePaymentScreen()));
             }),
-            _drawerItem(Icons.analytics_outlined, "Profit & Loss", Colors.pinkAccent, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => ExpenseScreen()));
+            _drawerItem(Icons.receipt_long, "Profit & Loss (Expenses)", Colors.amberAccent, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseScreen()));
             }),
             _drawerItem(Icons.engineering_outlined, "Staff Workload", Colors.blueAccent, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => WorkerStatsScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkerStatsScreen()));
             }),
             _drawerItem(Icons.people, t('customers'), Colors.greenAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerScreen()));
             }),
             _drawerItem(Icons.inventory, t('inventory'), Colors.purpleAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryScreen()));
+            }),
+            _drawerItem(Icons.smart_toy, "Tailor Bot (AI)", Colors.amberAccent, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const TailorBotScreen()));
+            }),
+            _drawerItem(Icons.public, "Customer Order Form", Colors.tealAccent, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOrderScreen()));
             }),
             _drawerItem(Icons.settings, t('settings'), Colors.blueGrey, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
@@ -243,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: "Search customer name...",
+                    hintText: "Search by name, phone, or garment...",
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                     prefixIcon: const Icon(Icons.search, color: Colors.white70),
                     filled: true,
@@ -387,9 +399,12 @@ class _HomeScreenState extends State<HomeScreen> {
            return s == _statusFilter;
         }).toList();
 
+        // Advanced Search & Filter (Feature 4)
         if (_searchQuery.isNotEmpty) {
           filteredOrders = filteredOrders.where((o) => 
-            (o['clientName'] ?? '').toString().toLowerCase().contains(_searchQuery)
+            (o['clientName'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+            (o['phone'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+            (o['garment'] ?? '').toString().toLowerCase().contains(_searchQuery)
           ).toList();
         }
 
@@ -542,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(ctx); // Close dialog first
+              Navigator.pop(ctx);
               final success = await provider.deleteOrder(id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

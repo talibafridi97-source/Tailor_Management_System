@@ -10,7 +10,9 @@ import 'controllers/expense_provider.dart';
 import 'services/auth_service.dart';
 import 'views/home_screen.dart';
 import 'views/tailor_book.dart';
+import 'views/customer_order_screen.dart';
 import 'core/api_config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -115,35 +117,43 @@ Future<void> _syncFcmToken(String? fcmToken) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.init();
-  await Firebase.initializeApp();
-  await initLocalNotifications();
 
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  NotificationSettings settings = await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp();
+      await initLocalNotifications();
 
-  print('User granted permission: ${settings.authorizationStatus}');
-
-  final fcmToken = await messaging.getToken();
-  print("FCM DEVICE TOKEN: $fcmToken");
-  await _syncFcmToken(fcmToken);
-
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('Foreground Notification received: ${message.notification?.title}');
-    if (message.notification != null) {
-      // 1. Play sound & trigger notification sound/tray
-      showLocalNotification(message.notification!.title, message.notification!.body);
-
-      // 2. Show gorgeous alert dialog popup right in the center of the screen
-      showInAppNotificationDialog(
-        message.notification!.title ?? 'New Order Created!',
-        message.notification!.body ?? '',
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
       );
+
+      print('User granted permission: ${settings.authorizationStatus}');
+
+      final fcmToken = await messaging.getToken();
+      print("FCM DEVICE TOKEN: $fcmToken");
+      await _syncFcmToken(fcmToken);
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        print('Foreground Notification received: ${message.notification?.title}');
+        if (message.notification != null) {
+          // 1. Play sound & trigger notification sound/tray
+          await showLocalNotification(message.notification!.title, message.notification!.body);
+
+          // 2. Show gorgeous alert dialog popup right in the center of the screen
+          await Future.delayed(const Duration(milliseconds: 200));
+          showInAppNotificationDialog(
+            message.notification!.title ?? 'New Order Created!',
+            message.notification!.body ?? '',
+          );
+        }
+      });
+    } catch (e) {
+      print("Firebase init error: $e");
     }
-  });
+  }
 
   runApp(
     MultiProvider(
@@ -189,17 +199,19 @@ class MyApp extends StatelessWidget {
         Locale('hi'),
         Locale('ps'),
       ],
-      home: FutureBuilder<String?>(
-        future: AuthService.getToken(),
-        builder: (context, snapshot) {
-          1; // Dummy statement to preserve structure
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
+      home: kIsWeb
+          ? const CustomerOrderScreen()
+          : FutureBuilder<String?>(
+              future: AuthService.getToken(),
+              builder: (context, snapshot) {
+                1; // Dummy statement to preserve structure
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
 
           if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
             return const HomeScreen();

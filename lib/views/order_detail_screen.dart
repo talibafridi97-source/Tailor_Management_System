@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/order_provider.dart';
+import '../controllers/settings_controller.dart';
 import '../core/date_formatter.dart';
 import '../services/whatsapp_service.dart';
 import '../services/pdf_service.dart';
@@ -71,6 +73,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
             onPressed: () => _generatePdf(),
+            tooltip: "Download/Print PDF Invoice",
           ),
         ],
       ),
@@ -86,36 +89,48 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _buildPaymentCard(totalBill, advance, due),
             const SizedBox(height: 16),
 
-            // 3. Sharing & Print Buttons
+            // 3. PDF Invoice Button (Feature 1)
+            _actionBtn("Download / Print PDF Invoice", const Color(0xFF1A1A2E), Icons.picture_as_pdf, _generatePdf),
+            const SizedBox(height: 12),
+
+            // 4. WhatsApp Reminders (Feature 2)
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _shareToWhatsapp,
-                    icon: const Icon(Icons.share, color: Colors.white),
-                    label: const Text("WhatsApp", style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
+                    onPressed: _sendDeliveryReminder,
+                    icon: const Icon(Icons.local_shipping, color: Colors.white, size: 18),
+                    label: const Text("Delivery Reminder", style: TextStyle(color: Colors.white, fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _generatePdf,
-                    icon: const Icon(Icons.print, color: Colors.white),
-                    label: const Text("Print Parchi", style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+                    onPressed: _sendPaymentReminder,
+                    icon: const Icon(Icons.payment, color: Colors.white, size: 18),
+                    label: const Text("Payment Reminder", style: TextStyle(color: Colors.white, fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade800,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
 
-            // 4. Materials Section
+            // 5. Materials Section
             if (materials.isNotEmpty)
               _buildMaterialsSection(materials),
             const SizedBox(height: 16),
 
-            // 5. Measurements Section
+            // 6. Measurements Section
             if (measurements.isNotEmpty)
               _buildSection("Measurements", Icons.straighten, const Color(0xFF6C63FF), measurements, "inch"),
             const SizedBox(height: 24),
@@ -138,7 +153,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             
             const SizedBox(height: 20),
 
-            _actionBtn("Delete Order Record", Colors.redAccent.withOpacity(0.8), Icons.delete_forever, _deleteOrder),
+            _actionBtn("Delete Order Record", Colors.redAccent, Icons.delete_forever, _deleteOrder),
             
             const SizedBox(height: 30),
           ],
@@ -147,42 +162,56 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  void _shareToWhatsapp() {
-    WhatsappService.shareReceipt(
+  void _sendDeliveryReminder() {
+    final settings = context.read<SettingsController>();
+    WhatsappService.sendDeliveryReminder(
       phone: widget.order['phone'] ?? '',
       customerName: widget.order['clientName'] ?? '',
       garment: widget.order['garment'] ?? '',
-      shopName: "TailorBook Shop", // This should come from settings
+      shopName: settings.shopName.isNotEmpty ? settings.shopName : "TailorBook Shop",
+      deliveryDate: DateFormatter.format(widget.order['deliveryDate']),
+    );
+  }
+
+  void _sendPaymentReminder() {
+    final settings = context.read<SettingsController>();
+    WhatsappService.sendPaymentBalanceReminder(
+      phone: widget.order['phone'] ?? '',
+      customerName: widget.order['clientName'] ?? '',
+      garment: widget.order['garment'] ?? '',
       totalBill: (widget.order['totalBill'] ?? 0).toDouble(),
       advance: (widget.order['advancePayment'] ?? 0).toDouble(),
       due: (widget.order['dueAmount'] ?? 0).toDouble(),
-      deliveryDate: widget.order['deliveryDate'],
+      shopName: settings.shopName.isNotEmpty ? settings.shopName : "TailorBook Shop",
     );
   }
 
   void _generatePdf() {
+    final settings = context.read<SettingsController>();
     PdfService.generateAndPrintReceipt(
       order: widget.order,
-      shopName: "TailorBook Shop",
-      shopAddress: "Main Market, Street 7",
-      shopPhone: "0300-1234567",
+      shopName: settings.shopName.isNotEmpty ? settings.shopName : "TailorBook Shop",
+      shopAddress: settings.shopAddress.isNotEmpty ? settings.shopAddress : "Main Market",
+      shopPhone: settings.shopContact.isNotEmpty ? settings.shopContact : "0300-1234567",
     );
   }
 
   void _deleteOrder() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Delete Order?", style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text("Are you sure you want to delete this order? This cannot be undone."),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
               final success = await context.read<OrderProvider>().deleteOrder(widget.orderId);
+              if (dialogCtx.mounted) {
+                Navigator.pop(dialogCtx);
+              }
               if (mounted && success) {
-                Navigator.pop(ctx);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Deleted"), backgroundColor: Colors.redAccent));
               }
@@ -301,24 +330,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void _collectDuePayment() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Collect Balance"),
         content: const Text("Receive remaining payment and clear dues?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
               try {
                 final total = (widget.order['totalBill'] ?? 0).toDouble();
                 final success = await context.read<OrderProvider>().collectPayment(widget.orderId, total);
+                if (dialogCtx.mounted) {
+                  Navigator.pop(dialogCtx);
+                }
                 if (mounted && success) {
-                  Navigator.pop(ctx);
                   Navigator.pop(context); 
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Updated Successfully!"), backgroundColor: Colors.green));
                 }
               } catch (e) {
-                print(e);
+                debugPrint("$e");
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
@@ -338,7 +369,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (ctx) => Container(
+      builder: (sheetContext) => Container(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -350,15 +381,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               title: Text(k),
               onTap: () async {
                 final success = await context.read<OrderProvider>().updateKarigar(widget.orderId, k);
-                if (mounted) {
-                  Navigator.pop(ctx);
-                  if (success) {
-                    Navigator.pop(context); // Go back to refresh list
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Assigned to $k"), backgroundColor: Colors.green));
-                  }
+                if (sheetContext.mounted) {
+                  Navigator.pop(sheetContext);
+                }
+                if (mounted && success) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Assigned to $k"), backgroundColor: Colors.green));
                 }
               },
-            )).toList(),
+            )),
           ],
         ),
       ),
@@ -392,38 +423,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _buildDuePaymentSection(double due) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 6))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _iconBox(Icons.account_balance_wallet, Colors.redAccent),
-              const SizedBox(width: 12),
-              const Text("Due Payment", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(due > 0 ? "Baqaya (Remaining)" : "Payment Clear", style: TextStyle(color: Colors.grey.shade700, fontSize: 14)),
-              Text("Rs. ${due.toInt()}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: due > 0 ? Colors.red : Colors.green)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMaterialsSection(List<dynamic> materials) {
     return Container(
       width: double.infinity,
@@ -447,7 +446,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ...materials.map((m) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text("- $m", style: const TextStyle(fontWeight: FontWeight.w500)),
-          )).toList(),
+          )),
         ],
       ),
     );

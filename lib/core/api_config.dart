@@ -1,16 +1,18 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 class ApiConfig {
-  // Pixel 6 Virtual Device (Emulator) ke liye 10.0.2.2 100% permanent aur fix hai!
-  static const String ip = '10.0.2.2';
+  // Live Cloud Backend URL on Render.com
+  static const String baseUrl = 'https://tailor-app-backend-tign.onrender.com/api';
+
+  static String get orders => '$baseUrl/orders';
+  static String get customers => '$baseUrl/customers';
+  static String get expenses => '$baseUrl/expenses';
+  static String get inventory => '$baseUrl/inventory';
+  static String get profile => '$baseUrl/auth/profile';
+  static String get login => '$baseUrl/auth/login';
+  static String get register => '$baseUrl/auth/register';
 
   static Future<void> init() async {}
-
   static Future<void> setIp(String newIp) async {}
-
-  static String get orders => 'http://$ip:5000/api/orders';
-  static String get customers => 'http://$ip:5000/api/customers';
-  static String get expenses => 'http://$ip:5000/api/expenses';
-  static String get inventory => 'http://$ip:5000/api/inventory';
-  static String get profile => 'http://$ip:5000/api/auth/profile';
-  static String get login => 'http://$ip:5000/api/auth/login';
-  static String get register => 'http://$ip:5000/api/auth/register';
+  static String get ip => 'tailor-app-backend-tign.onrender.com';
 }
